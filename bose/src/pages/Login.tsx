@@ -54,7 +54,6 @@
           description: 'Successfully logged in to the blockchain platform',
           variant: 'success'
         });
-        
       } catch (error: any) {
         toast({
           title: 'Login Failed',

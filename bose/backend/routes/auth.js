@@ -46,6 +46,31 @@ const mockUsers = {
     role: 'auditor',
     name: 'Alice Auditor',
     organization: 'Org3MSP'
+  },
+  // Added mock users with explicit roles for admin, institution, employer
+  'admin@dapcvrn.com': {
+    id: 'user_admin',
+    email: 'admin@dapcvrn.com',
+    password: '$2a$10$mockhashedpassword',
+    role: 'admin',
+    name: 'System Admin',
+    organization: 'BOSE'
+  },
+  'iit@dapcvrn.com': {
+    id: 'user_inst',
+    email: 'iit@dapcvrn.com',
+    password: '$2a$10$mockhashedpassword',
+    role: 'institution',
+    name: 'IIT Issuer',
+    organization: 'IITMSP'
+  },
+  'hr@dapcvrn.com': {
+    id: 'user_emp',
+    email: 'hr@dapcvrn.com',
+    password: '$2a$10$mockhashedpassword',
+    role: 'employer',
+    name: 'HR Manager',
+    organization: 'AcmeCorp'
   }
 };
 

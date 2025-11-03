@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 import api from '../lib/api';
+import { useNavigate } from 'react-router-dom';
+import { ROLE_DASHBOARD_PATH } from '../lib/roles';
 
 interface User {
   id: string;
@@ -13,7 +15,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
   logout: () => void;
   loading: boolean;
 }
@@ -32,6 +34,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Check for stored token on app load
@@ -66,14 +69,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         { email, password }
       );
 
-      const { token, user } = response.data;
-      
-      setToken(token);
-      setUser(user);
-      localStorage.setItem('bose_token', token);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      const { token: jwtToken, user: loggedInUser } = response.data;
+
+      setToken(jwtToken);
+      setUser(loggedInUser);
+      localStorage.setItem('bose_token', jwtToken);
+      axios.defaults.headers.common['Authorization'] = `Bearer ${jwtToken}`;
+      (api.defaults.headers as any) = (api.defaults.headers || {}) as any;
+      (api.defaults.headers as any).common = (api.defaults.headers as any).common || {};
+      (api.defaults.headers as any).common['Authorization'] = `Bearer ${jwtToken}`;
+      const roleKey = (loggedInUser.role || '').toLowerCase() as keyof typeof ROLE_DASHBOARD_PATH;
+      const path = ROLE_DASHBOARD_PATH[roleKey] || '/dashboard';
+      navigate(path, { replace: true });
+      return loggedInUser;
     } catch (error) {
-      throw error;
+      throw error as any;
     }
   };
 
@@ -82,6 +92,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setToken(null);
     localStorage.removeItem('bose_token');
     delete axios.defaults.headers.common['Authorization'];
+    if ((api.defaults.headers as any)?.common) {
+      delete (api.defaults.headers as any).common['Authorization'];
+    }
+    navigate('/login', { replace: true });
   };
 
   const value = {

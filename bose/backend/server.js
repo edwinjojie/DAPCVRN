@@ -9,7 +9,7 @@ import { WebSocketServer } from 'ws';
 import dotenv from 'dotenv';
 
 import authRoutes from './routes/auth.js';
-import credentialRoutes from './routes/credentials.js';
+// Routes
 import analyticsRoutes from './routes/analytics.js';
 import eventRoutes from './routes/events.js';
 import recruiterRoutes from './routes/recruiter.js';
@@ -18,10 +18,16 @@ import applicantsRouter from './routes/applicants.js';
 import candidatesRouter from './routes/candidates.js';
 import messagesRouter from './routes/messages.js';
 import notificationsRouter from './routes/notifications.js';
+import candidateRouter from './routes/candidate.js';
+import candidateProfileRouter from './routes/candidateProfile.js';
+import credentialsRouter from './routes/credentials.js';
+import applicationsRouter from './routes/applications.js';
 import { authenticateToken } from './middleware/auth.js';
 import { initializeDemoData } from './services/demoData.js';
 import { setupWebSocket } from './services/websocket.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import adminRouter from './routes/admin.js';
+import institutionsRouter from './routes/institutions.js';
 
 dotenv.config();
 
@@ -106,11 +112,18 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 
-// Rate limiting
+// Rate limiting (relaxed in development and for auth routes)
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.'
+  windowMs: 15 * 60 * 1000,
+  max: process.env.NODE_ENV === 'development' ? 100000 : 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: 'Too many requests from this IP, please try again later.',
+  skip: (req) => {
+    const isDev = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
+    const isAuthRoute = req.path.startsWith('/api/auth');
+    return isDev || isAuthRoute;
+  }
 });
 app.use('/api/', limiter);
 
@@ -123,7 +136,6 @@ setupWebSocket(wss);
 
 // Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/credentials', authenticateToken, credentialRoutes);
 app.use('/api/analytics', authenticateToken, analyticsRoutes);
 app.use('/api/events', authenticateToken, eventRoutes);
 app.use('/api/recruiter', authenticateToken, recruiterRoutes);
@@ -132,11 +144,17 @@ app.use('/api/applicants', authenticateToken, applicantsRouter);
 app.use('/api/candidates', authenticateToken, candidatesRouter);
 app.use('/api/messages', authenticateToken, messagesRouter);
 app.use('/api/notifications', authenticateToken, notificationsRouter);
+app.use('/api/admin', authenticateToken, adminRouter);
+app.use('/api/institutions', authenticateToken, institutionsRouter);
+app.use('/api/candidate', authenticateToken, candidateRouter);
+app.use('/api/candidate/profile', authenticateToken, candidateProfileRouter);
+app.use('/api/credentials', authenticateToken, credentialsRouter);
+app.use('/api/applications', authenticateToken, applicationsRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'healthy', 
+  res.json({
+    status: 'healthy',
     timestamp: new Date().toISOString(),
     network: 'Hyperledger Fabric v2.5',
     channel: process.env.FABRIC_CHANNEL_NAME,

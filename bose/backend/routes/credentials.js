@@ -5,6 +5,33 @@ import { v4 as uuidv4 } from 'uuid';
 
 const router = express.Router();
 
+// In-memory mock credentials for candidate flows (Phase 2)
+let mockCreds = [
+  { _id: 'c1', ownerId: 'u1', title: 'B.Tech Computer Science', type: 'academic', status: 'verified', issuedBy: 'inst1' },
+  { _id: 'c2', ownerId: 'u1', title: 'Blockchain Internship', type: 'professional', status: 'pending', issuedBy: null },
+];
+
+// Candidate endpoints
+router.get('/my', (req, res) => res.json(mockCreds));
+
+router.post('/upload', (req, res) => {
+  const cred = { _id: `c${mockCreds.length + 1}`, ...req.body, status: 'pending' };
+  mockCreds.push(cred);
+  res.json(cred);
+});
+
+router.delete('/:id', (req, res) => {
+  mockCreds = mockCreds.filter(c => c._id !== req.params.id);
+  res.json({ success: true });
+});
+
+router.post('/request/:id', (req, res) => {
+  const id = req.params.id;
+  const cred = mockCreds.find(c => c._id === id);
+  if (cred) cred.status = 'pending';
+  res.json({ success: true });
+});
+
 // Validation schemas
 const issueCredentialSchema = Joi.object({
   studentId: Joi.string().required(),

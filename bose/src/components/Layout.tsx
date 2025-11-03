@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '../lib/utils';
+import { SIDEBAR_LINKS } from '../lib/roles';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -27,46 +28,20 @@ export default function Layout({ children }: LayoutProps) {
   const { sidebarOpen, setSidebarOpen } = useStore();
   const location = useLocation();
 
-  // Role-based navigation
-  const navigation = (() => {
-    const role = (user?.role || '').toLowerCase();
-    if (role === 'student' || role === 'candidate' || role === 'employee') {
-      return [
-        { name: 'Home', href: '/dashboard/student', icon: Home },
-        { name: 'Upload Creds', href: '/dashboard/student#upload', icon: FileText },
-        { name: 'Portfolio', href: '/dashboard/student#portfolio', icon: User },
-        { name: 'Share', href: '/dashboard/student#share', icon: Shield },
-        { name: 'Recommendations', href: '/dashboard/student#reco', icon: Settings },
-        { name: 'Analytics', href: '/dashboard/student#analytics', icon: BarChart3 },
-      ];
-    }
-    if (role === 'employer' || role === 'recruiter') {
-      return [
-        { name: 'Home', href: '/dashboard/employer', icon: Home },
-        { name: 'Jobs', href: '/dashboard/employer/jobs', icon: FileText },
-        { name: 'Applicants', href: '/dashboard/employer/applicants', icon: User },
-        { name: 'Candidates', href: '/dashboard/employer/candidates', icon: Shield },
-        { name: 'Analytics', href: '/dashboard/employer/analytics', icon: BarChart3 },
-        { name: 'Settings', href: '/dashboard/employer/settings', icon: Settings },
-      ];
-    }
-    if (role === 'institution' || role === 'verifier' || role === 'issuer') {
-      return [
-        { name: 'Home', href: '/dashboard/institution', icon: Home },
-        { name: 'Issue Creds', href: '/dashboard/institution#issue', icon: FileText },
-        { name: 'Verification Queue', href: '/dashboard/institution#queue', icon: Shield },
-        { name: 'Bulk Upload', href: '/dashboard/institution#bulk', icon: Settings },
-        { name: 'Analytics', href: '/dashboard/institution#analytics', icon: BarChart3 },
-      ];
-    }
-    // Default navigation
-    return [
-      { name: 'Dashboard', href: '/dashboard', icon: Home },
-      { name: 'Credentials', href: '/dashboard/credentials', icon: FileText },
-      { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
-      { name: 'Settings', href: '/dashboard/settings', icon: Settings },
-    ];
-  })();
+  // Centralized role-based navigation using SIDEBAR_LINKS
+  const role = (user?.role || '').toLowerCase();
+  const rawLinks = user ? (SIDEBAR_LINKS as any)[role] || [] : [];
+  const pickIcon = (name: string) => {
+    const n = name.toLowerCase();
+    if (n.includes('home') || n.includes('dashboard')) return Home;
+    if (n.includes('job') || n.includes('issue') || n.includes('credential')) return FileText;
+    if (n.includes('applicant') || n.includes('profile') || n.includes('user') || n.includes('candidate')) return User;
+    if (n.includes('verify') || n.includes('queue') || n.includes('share')) return Shield;
+    if (n.includes('analytics') || n.includes('reports') || n.includes('log')) return BarChart3;
+    if (n.includes('settings') || n.includes('bulk')) return Settings;
+    return Home;
+  };
+  const navigation = rawLinks.map((l: any) => ({ ...l, icon: pickIcon(l.name) }));
 
   return (
     <div className="min-h-screen bg-gray-50">
