@@ -1,4 +1,4 @@
-import React from 'react';
+//import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './components/ui/toast';
@@ -9,13 +9,13 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 import './App.css';
 import StudentDashboard from './pages/StudentDashboard';
-import EmployerDashboard from './pages/recruiters/EmployerDashboard';
+//import EmployerDashboard from './pages/recruiters/EmployerDashboard';
 import RecruiterDashboard from './modules/recruiter/RecruiterDashboard';
 import RecruiterJobs from './modules/recruiter/pages/Jobs';
 import Applicants from './modules/recruiter/pages/Applicants';
 import Candidates from './modules/recruiter/pages/Candidates';
 import AdminDashboard from './modules/admin/pages/AdminDashboard';
-import InstitutionDashboard from './modules/institution/pages/InstitutionDashboard';
+import UniversityDashboard from './modules/university/UniversityDashboard';
 import Messages from './modules/recruiter/pages/Messages';
 import RedirectToRoleDashboard from './routes/RedirectToRoleDashboard';
 import Unauthorized from './pages/Unauthorized';
@@ -107,10 +107,10 @@ function App() {
                   </Layout>
                 </ProtectedRoute>
               } />
-              <Route path="/dashboard/institution" element={
-                <ProtectedRoute roles={["institution", "verifier", "issuer"]}>
+              <Route path="/university/*" element={
+                <ProtectedRoute roles={["university", "institution", "verifier", "issuer"]}>
                   <Layout>
-                    <InstitutionDashboard />
+                    <UniversityDashboard />
                   </Layout>
                 </ProtectedRoute>
               } />

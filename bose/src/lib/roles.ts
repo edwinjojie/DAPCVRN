@@ -1,4 +1,4 @@
-export type RoleKey = 'candidate' | 'student' | 'employee' | 'recruiter' | 'employer' | 'institution' | 'verifier' | 'issuer' | 'admin' | 'auditor';
+export type RoleKey = 'candidate' | 'student' | 'employee' | 'recruiter' | 'employer' | 'institution' | 'verifier' | 'issuer' | 'university' | 'admin' | 'auditor';
 
 export const ROLE_DASHBOARD_PATH: Record<RoleKey, string> = {
   candidate: '/dashboard/candidate',
@@ -6,9 +6,10 @@ export const ROLE_DASHBOARD_PATH: Record<RoleKey, string> = {
   employee: '/dashboard/student',
   recruiter: '/dashboard/employer',
   employer: '/dashboard/employer',
-  institution: '/dashboard/institution',
-  verifier: '/dashboard/institution',
-  issuer: '/dashboard/institution',
+  institution: '/university',
+  verifier: '/university',
+  issuer: '/university',
+  university: '/university',
   admin: '/dashboard/admin',
   auditor: '/dashboard/auditor',
 };
@@ -56,21 +57,32 @@ export const SIDEBAR_LINKS: Record<RoleKey, SidebarLink[]> = {
 
   // Institution / Verifier / Issuer
   institution: [
-    { name: 'Dashboard', href: '/dashboard/institution' },
-    { name: 'Verifications', href: '/dashboard/institution#queue' },
-    { name: 'Issued Credentials', href: '/dashboard/institution#issued' },
-    { name: 'Bulk Upload', href: '/dashboard/institution#bulk' },
-    { name: 'Analytics', href: '/dashboard/institution#analytics' },
+    { name: 'Dashboard', href: '/university' },
+    { name: 'Verifications', href: '/university/verification-requests' },
+    { name: 'Issued Credentials', href: '/university/issued-credentials' },
+    { name: 'Students', href: '/university/students' },
+    { name: 'Analytics', href: '/university/analytics' },
   ],
   verifier: [
-    { name: 'Dashboard', href: '/dashboard/institution' },
-    { name: 'Verifications', href: '/dashboard/institution#queue' },
-    { name: 'Issued Credentials', href: '/dashboard/institution#issued' },
+    { name: 'Dashboard', href: '/university' },
+    { name: 'Verifications', href: '/university/verification-requests' },
+    { name: 'Issued Credentials', href: '/university/issued-credentials' },
+    { name: 'Students', href: '/university/students' },
+    { name: 'Analytics', href: '/university/analytics' },
   ],
   issuer: [
-    { name: 'Dashboard', href: '/dashboard/institution' },
-    { name: 'Issue Creds', href: '/dashboard/institution#issue' },
-    { name: 'Issued Credentials', href: '/dashboard/institution#issued' },
+    { name: 'Dashboard', href: '/university' },
+    { name: 'Issue Creds', href: '/university' },
+    { name: 'Issued Credentials', href: '/university/issued-credentials' },
+  ],
+
+  // University
+  university: [
+    { name: 'Dashboard', href: '/university' },
+    { name: 'Verifications', href: '/university/verification-requests' },
+    { name: 'Issued Credentials', href: '/university/issued-credentials' },
+    { name: 'Students', href: '/university/students' },
+    { name: 'Analytics', href: '/university/analytics' },
   ],
 
   // Admin & Auditor

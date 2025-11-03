@@ -28,6 +28,7 @@ import { setupWebSocket } from './services/websocket.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import adminRouter from './routes/admin.js';
 import institutionsRouter from './routes/institutions.js';
+import universityRouter from './routes/university.js';
 
 dotenv.config();
 
@@ -150,6 +151,7 @@ app.use('/api/candidate', authenticateToken, candidateRouter);
 app.use('/api/candidate/profile', authenticateToken, candidateProfileRouter);
 app.use('/api/credentials', authenticateToken, credentialsRouter);
 app.use('/api/applications', authenticateToken, applicationsRouter);
+app.use('/api/university', authenticateToken, universityRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {
