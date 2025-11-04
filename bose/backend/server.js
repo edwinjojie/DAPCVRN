@@ -8,6 +8,9 @@ import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
 import dotenv from 'dotenv';
 
+// Database
+import database from './config/database.js';
+
 import authRoutes from './routes/auth.js';
 // Routes
 import analyticsRoutes from './routes/analytics.js';
@@ -28,7 +31,11 @@ import { setupWebSocket } from './services/websocket.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import adminRouter from './routes/admin.js';
 import institutionsRouter from './routes/institutions.js';
+<<<<<<< Updated upstream
 import universityRouter from './routes/university.js';
+=======
+import path from 'path';
+>>>>>>> Stashed changes
 
 dotenv.config();
 
@@ -137,6 +144,11 @@ setupWebSocket(wss);
 
 // Routes
 app.use('/api/auth', authRoutes);
+
+// Public routes (no authentication required)
+app.use('/api/public/jobs', jobsRoutes); // Public job browsing
+
+// Protected routes (authentication required)
 app.use('/api/analytics', authenticateToken, analyticsRoutes);
 app.use('/api/events', authenticateToken, eventRoutes);
 app.use('/api/recruiter', authenticateToken, recruiterRoutes);
@@ -153,11 +165,17 @@ app.use('/api/credentials', authenticateToken, credentialsRouter);
 app.use('/api/applications', authenticateToken, applicationsRouter);
 app.use('/api/university', authenticateToken, universityRouter);
 
+// Serve uploaded files (credentials) - development only
+app.use('/uploads', express.static(path.join(process.cwd(), 'backend', 'uploads')));
+
 // Health check
 app.get('/api/health', (req, res) => {
+  const dbStatus = database.isConnected() ? 'connected' : 'disconnected';
+
   res.json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
+    database: dbStatus,
     network: 'Hyperledger Fabric v2.5',
     channel: process.env.FABRIC_CHANNEL_NAME,
     chaincode: process.env.FABRIC_CHAINCODE_NAME
@@ -167,14 +185,35 @@ app.get('/api/health', (req, res) => {
 // Error handling
 app.use(errorHandler);
 
-// Initialize demo data on startup
-initializeDemoData().catch(console.error);
-
+// Initialize server
 const PORT = process.env.PORT || 3001;
-server.listen(PORT, () => {
-  console.log(`🚀 BOSE Backend Server running on port ${PORT}`);
-  console.log(`📊 WebSocket Server ready for real-time events`);
-  console.log(`🔗 Hyperledger Fabric Network: ${process.env.FABRIC_CHANNEL_NAME}`);
-});
+
+async function startServer() {
+  try {
+    // Connect to MongoDB (non-blocking in development)
+    try {
+      await database.connect();
+    } catch (dbError) {
+      console.warn('⚠️  MongoDB connection failed - running in mock data mode');
+      console.warn('💡 To fix: Add your IP to MongoDB Atlas Network Access whitelist');
+      console.warn('   Visit: https://cloud.mongodb.com/ > Network Access > Add IP Address');
+    }
+
+    // Initialize demo data on startup
+    await initializeDemoData();
+
+    // Start server
+    server.listen(PORT, () => {
+      console.log(`🚀 BOSE Backend Server running on port ${PORT}`);
+      console.log(`📊 WebSocket Server ready for real-time events`);
+      console.log(`🔗 Hyperledger Fabric Network: ${process.env.FABRIC_CHANNEL_NAME}`);
+    });
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);
+  }
+}
+
+startServer();
 
 export { wss };

@@ -50,30 +50,42 @@ export default function JobEditorModal({ open, onOpenChange, initial, onSubmit }
           <DialogTitle>{initial?.id ? 'Edit Job' : 'Post Job'}</DialogTitle>
           <DialogDescription>Provide job details and status.</DialogDescription>
         </DialogHeader>
-        <div className="space-y-3">
+        <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+            <label className="block text-sm font-semibold text-slate-800 mb-1">
+              Title <span className="text-red-500">*</span>
+            </label>
             <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g., Frontend Engineer" />
-            {errors.title && <div className="mt-1 text-xs text-red-600">{errors.title}</div>}
+            {errors.title && <div className="mt-1 text-xs text-red-600 font-semibold">{errors.title}</div>}
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <label className="block text-sm font-semibold text-slate-800 mb-1">
+              Description <span className="text-red-500">*</span>
+            </label>
             <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Short summary" />
-            {errors.description && <div className="mt-1 text-xs text-red-600">{errors.description}</div>}
+            {errors.description && <div className="mt-1 text-xs text-red-600 font-semibold">{errors.description}</div>}
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+            <label className="block text-sm font-semibold text-slate-800 mb-1">
+              Location <span className="text-red-500">*</span>
+            </label>
             <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g., Remote or City" />
-            {errors.location && <div className="mt-1 text-xs text-red-600">{errors.location}</div>}
+            {errors.location && <div className="mt-1 text-xs text-red-600 font-semibold">{errors.location}</div>}
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-            <select className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" value={status} onChange={(e) => setStatus(e.target.value as Job['status'])}>
+            <label className="block text-sm font-semibold text-slate-800 mb-1">
+              Status <span className="text-red-500">*</span>
+            </label>
+            <select
+              className="w-full rounded-lg border-2 border-slate-300 px-3 py-2 text-sm text-slate-800 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+              value={status}
+              onChange={(e) => setStatus(e.target.value as Job['status'])}
+            >
               <option value="draft">Draft</option>
               <option value="active">Active</option>
               <option value="closed">Closed</option>
             </select>
-            {errors.status && <div className="mt-1 text-xs text-red-600">{errors.status}</div>}
+            {errors.status && <div className="mt-1 text-xs text-red-600 font-semibold">{errors.status}</div>}
           </div>
         </div>
         <DialogFooter>

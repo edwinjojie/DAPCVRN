@@ -15,16 +15,17 @@ export default function JobFilterBar({ query, status, onChange }: JobFilterBarPr
         placeholder="Search job title…"
         value={query}
         onChange={(e) => onChange({ query: e.target.value })}
+        className="flex-1"
       />
       <select
-        className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+        className="rounded-lg border-2 border-slate-300 px-3 py-2 text-sm text-slate-800 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
         value={status}
         onChange={(e) => onChange({ status: e.target.value })}
       >
-        <option value="all">All</option>
-        <option value="Active">Active</option>
-        <option value="Draft">Draft</option>
-        <option value="Closed">Closed</option>
+        <option value="all">All Statuses</option>
+        <option value="active">Active</option>
+        <option value="draft">Draft</option>
+        <option value="closed">Closed</option>
       </select>
       <Button variant="outline" onClick={() => onChange({ query: '', status: 'all' })}>Clear</Button>
     </div>

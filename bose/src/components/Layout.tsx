@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useStore } from '../store/useStore';
 import { Button } from './ui/button';
 import NotificationBell from '../modules/recruiter/components/NotificationBell';
+import DarkModeToggle from './DarkModeToggle';
 import { 
   Shield, 
   Menu, 
@@ -44,21 +45,21 @@ export default function Layout({ children }: LayoutProps) {
   const navigation = rawLinks.map((l: any) => ({ ...l, icon: pickIcon(l.name) }));
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-900">
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
-        <div className="fixed inset-0 z-40 lg:hidden">
+        <div className="fixed inset-0 z-40 lg:hidden animate-fade-in">
           <div 
-            className="fixed inset-0 bg-gray-600 bg-opacity-75"
+            className="fixed inset-0 bg-gray-900/80 backdrop-blur-sm"
             onClick={() => setSidebarOpen(false)}
           />
-          <div className="relative flex w-full max-w-xs flex-1 flex-col bg-white">
+          <div className="relative flex w-full max-w-xs flex-1 flex-col bg-white dark:bg-gray-800 shadow-2xl animate-slide-up">
             <div className="absolute top-0 right-0 -mr-12 pt-2">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setSidebarOpen(false)}
-                className="ml-1 flex h-10 w-10 items-center justify-center rounded-full focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
+                className="ml-1 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 backdrop-blur-sm hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
               >
                 <X className="h-6 w-6 text-white" />
               </Button>
@@ -76,12 +77,12 @@ export default function Layout({ children }: LayoutProps) {
       {/* Main content */}
       <div className="lg:pl-72">
         {/* Top navigation */}
-        <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
+        <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200/80 dark:border-gray-700/80 bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setSidebarOpen(true)}
-            className="lg:hidden"
+            className="lg:hidden hover:bg-gray-100 dark:hover:bg-gray-700"
           >
             <Menu className="h-6 w-6" />
           </Button>
@@ -92,27 +93,30 @@ export default function Layout({ children }: LayoutProps) {
               <input
                 aria-label="Search"
                 placeholder="Search credentials, users, reports..."
-                className="w-full max-w-xl rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full max-w-xl rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-all duration-200 placeholder:text-gray-400 dark:placeholder:text-gray-500"
               />
             </form>
             <div className="flex items-center gap-x-4 lg:gap-x-6">
+              {/* Dark Mode Toggle */}
+              <DarkModeToggle />
+
               {/* Notifications */}
               <NotificationBell />
 
               {/* User menu */}
-              <div className="flex items-center gap-x-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600">
-                  <User className="h-4 w-4 text-white" />
+              <div className="flex items-center gap-x-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-blue-500 shadow-lg shadow-blue-500/30 ring-2 ring-white dark:ring-gray-700">
+                  <User className="h-5 w-5 text-white" />
                 </div>
                 <div className="hidden lg:flex lg:flex-col lg:text-sm lg:leading-6">
-                  <span className="font-semibold text-gray-900">{user?.name}</span>
-                  <span className="text-gray-500 capitalize">{user?.role}</span>
+                  <span className="font-semibold text-gray-900 dark:text-gray-100">{user?.name}</span>
+                  <span className="text-gray-600 dark:text-gray-400 capitalize">{user?.role}</span>
                 </div>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={logout}
-                  className="text-gray-500 hover:text-gray-700"
+                  className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
                 >
                   <LogOut className="h-4 w-4" />
                 </Button>
@@ -122,7 +126,7 @@ export default function Layout({ children }: LayoutProps) {
         </div>
 
         {/* Page content */}
-        <main className="py-10">
+        <main className="py-10 animate-fade-in">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             {children}
           </div>
@@ -136,54 +140,62 @@ function SidebarContent({ navigation, currentPath }: { navigation: any[], curren
   const { user } = useAuth();
 
   return (
-    <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-gray-200 bg-white px-6">
+    <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-gray-200/80 dark:border-gray-700/80 bg-white/95 dark:bg-gray-800/95 backdrop-blur-lg px-6 custom-scrollbar">
       <div className="flex h-16 shrink-0 items-center">
         <div className="flex items-center gap-3">
-          <Shield className="h-8 w-8 text-blue-600" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-blue-500 shadow-lg shadow-blue-500/30">
+            <Shield className="h-6 w-6 text-white" />
+          </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">BOSE</h1>
-            <p className="text-xs text-gray-500">Blockchain Credentials</p>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">BOSE</h1>
+            <p className="text-xs text-gray-600 dark:text-gray-400">Blockchain Credentials</p>
           </div>
         </div>
       </div>
       
       <nav className="flex flex-1 flex-col">
-        <ul role="list" className="flex flex-1 flex-col gap-y-7">
+        <ul role="list" className="flex flex-1 flex-col gap-y-2">
           <li>
             <ul role="list" className="-mx-2 space-y-1">
-              {navigation.map((item) => (
-                <li key={item.name}>
-                  <Link
-                    to={item.href}
-                    className={cn(
-                      currentPath === item.href
-                        ? 'bg-blue-50 text-blue-700'
-                        : 'text-gray-700 hover:text-blue-700 hover:bg-blue-50',
-                      'group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold transition-colors'
-                    )}
-                  >
-                    <item.icon
+              {navigation.map((item) => {
+                const isActive = currentPath === item.href;
+                return (
+                  <li key={item.name}>
+                    <Link
+                      to={item.href}
                       className={cn(
-                        currentPath === item.href ? 'text-blue-700' : 'text-gray-400 group-hover:text-blue-700',
-                        'h-6 w-6 shrink-0'
+                        isActive
+                          ? 'bg-gradient-to-r from-blue-50 to-blue-100/50 dark:from-blue-900/30 dark:to-blue-800/20 text-blue-700 dark:text-blue-400 shadow-sm'
+                          : 'text-gray-700 dark:text-gray-300 hover:text-blue-700 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-700/50',
+                        'group flex gap-x-3 rounded-lg p-3 text-sm leading-6 font-medium transition-all duration-200',
+                        'hover:scale-[1.02] active:scale-[0.98]'
                       )}
-                    />
-                    {item.name}
-                  </Link>
-                </li>
-              ))}
+                    >
+                      <item.icon
+                        className={cn(
+                          isActive 
+                            ? 'text-blue-700 dark:text-blue-400' 
+                            : 'text-gray-400 dark:text-gray-500 group-hover:text-blue-700 dark:group-hover:text-blue-400',
+                          'h-6 w-6 shrink-0 transition-colors duration-200'
+                        )}
+                      />
+                      {item.name}
+                    </Link>
+                  </li>
+                );
+              })}
             </ul>
           </li>
           
-          <li className="mt-auto">
-            <div className="rounded-lg bg-blue-50 p-4">
+          <li className="mt-auto mb-6">
+            <div className="rounded-xl bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-900/30 dark:to-blue-800/20 p-4 border border-blue-200/50 dark:border-blue-700/50 shadow-sm">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-blue-500 shadow-md">
                   <Shield className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-blue-900">{user?.organization}</p>
-                  <p className="text-xs text-blue-700 capitalize">{user?.role} Access</p>
+                  <p className="text-sm font-semibold text-blue-900 dark:text-blue-300">{user?.organization}</p>
+                  <p className="text-xs text-blue-700 dark:text-blue-400 capitalize">{user?.role} Access</p>
                 </div>
               </div>
             </div>

@@ -1,25 +1,75 @@
 import express from 'express';
+import { Message } from '../models/index.js';
 
 const router = express.Router();
 
-let conversations = {
-  'C-001': [
-    { sender: 'recruiter', text: 'Hi Ananya, we liked your profile!', time: '10:02' },
-    { sender: 'C-001', text: 'Thank you!', time: '10:04' },
-  ],
-};
+// Get messages between current user and another user - Now using MongoDB
+router.get('/:candidateId', async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id;
+    const { candidateId } = req.params;
 
-router.get('/:candidateId', (req, res) => {
-  res.json(conversations[req.params.candidateId] || []);
+    const messages = await Message.find({
+      $or: [
+        { senderId: userId, recipientId: candidateId },
+        { senderId: candidateId, recipientId: userId }
+      ]
+    })
+    .populate('senderId', 'name email')
+    .populate('recipientId', 'name email')
+    .sort({ sentAt: 1 })
+    .lean();
+
+    // Transform for frontend compatibility
+    const transformedMessages = messages.map(msg => ({
+      sender: msg.senderId?._id?.toString() === userId ? 'recruiter' : candidateId,
+      text: msg.content,
+      time: new Date(msg.sentAt).toLocaleTimeString(),
+      ...msg
+    }));
+
+    res.json(transformedMessages);
+  } catch (error) {
+    console.error('Error fetching messages:', error);
+    res.status(500).json({ error: 'Failed to fetch messages' });
+  }
 });
 
-router.post('/:candidateId', (req, res) => {
-  const msg = { sender: 'recruiter', text: req.body?.text || '', time: new Date().toLocaleTimeString() };
-  conversations[req.params.candidateId] = [
-    ...(conversations[req.params.candidateId] || []),
-    msg,
-  ];
-  res.json(msg);
+// Send a message - Now using MongoDB
+router.post('/:candidateId', async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id;
+    const { candidateId } = req.params;
+    const { text } = req.body;
+
+    if (!text) {
+      return res.status(400).json({ error: 'Message text is required' });
+    }
+
+    const message = await Message.create({
+      messageId: `MSG-${Date.now()}`,
+      senderId: userId,
+      recipientId: candidateId,
+      content: text,
+      sentAt: new Date(),
+      isRead: false
+    });
+
+    const populated = await Message.findById(message._id)
+      .populate('senderId', 'name email')
+      .populate('recipientId', 'name email')
+      .lean();
+
+    res.json({
+      sender: 'recruiter',
+      text: populated.content,
+      time: new Date(populated.sentAt).toLocaleTimeString(),
+      ...populated
+    });
+  } catch (error) {
+    console.error('Error sending message:', error);
+    res.status(500).json({ error: 'Failed to send message' });
+  }
 });
 
 export default router;

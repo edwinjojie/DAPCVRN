@@ -1,8 +1,13 @@
+<<<<<<< Updated upstream
 export type RoleKey = 'candidate' | 'student' | 'employee' | 'recruiter' | 'employer' | 'institution' | 'verifier' | 'issuer' | 'university' | 'admin' | 'auditor';
+=======
+// BOSE has 4 core roles: student, university, recruiter, admin
+export type RoleKey = 'student' | 'university' | 'recruiter' | 'admin';
+>>>>>>> Stashed changes
 
 export const ROLE_DASHBOARD_PATH: Record<RoleKey, string> = {
-  candidate: '/dashboard/candidate',
   student: '/dashboard/student',
+<<<<<<< Updated upstream
   employee: '/dashboard/student',
   recruiter: '/dashboard/employer',
   employer: '/dashboard/employer',
@@ -10,21 +15,17 @@ export const ROLE_DASHBOARD_PATH: Record<RoleKey, string> = {
   verifier: '/university',
   issuer: '/university',
   university: '/university',
+=======
+  university: '/dashboard/university',
+  recruiter: '/dashboard/recruiter',
+>>>>>>> Stashed changes
   admin: '/dashboard/admin',
-  auditor: '/dashboard/auditor',
 };
 
 type SidebarLink = { name: string; href: string };
 
 export const SIDEBAR_LINKS: Record<RoleKey, SidebarLink[]> = {
-  // Candidate-centric
-  candidate: [
-    { name: 'Dashboard', href: '/dashboard/candidate' },
-    { name: 'Profile', href: '/dashboard/candidate/profile' },
-    { name: 'Credentials', href: '/dashboard/candidate#credentials' },
-    { name: 'Applications', href: '/dashboard/candidate#applications' },
-    { name: 'Messages', href: '/dashboard/candidate#messages' },
-  ],
+  // Student / Candidate
   student: [
     { name: 'Home', href: '/dashboard/student' },
     { name: 'Upload Creds', href: '/dashboard/student#upload' },
@@ -33,28 +34,26 @@ export const SIDEBAR_LINKS: Record<RoleKey, SidebarLink[]> = {
     { name: 'Recommendations', href: '/dashboard/student#reco' },
     { name: 'Analytics', href: '/dashboard/student#analytics' },
   ],
-  employee: [
-    { name: 'Home', href: '/dashboard/student' },
-    { name: 'Portfolio', href: '/dashboard/student#portfolio' },
-    { name: 'Analytics', href: '/dashboard/student#analytics' },
+
+  // University / Institution
+  university: [
+    { name: 'Dashboard', href: '/dashboard/university' },
+    { name: 'Verifications', href: '/dashboard/university/verifications' },
+    { name: 'Issued Credentials', href: '/dashboard/university/issued' },
+    { name: 'Bulk Upload', href: '/dashboard/university/bulk' },
+    { name: 'Analytics', href: '/dashboard/university/analytics' },
   ],
 
-  // Recruiter / Employer
+  // Recruiter / Company
   recruiter: [
-    { name: 'Home', href: '/dashboard/employer' },
-    { name: 'Jobs', href: '/dashboard/employer/jobs' },
-    { name: 'Applicants', href: '/dashboard/employer/applicants' },
-    { name: 'Candidates', href: '/dashboard/employer/candidates' },
-    { name: 'Messages', href: '/dashboard/employer/messages' },
-  ],
-  employer: [
-    { name: 'Home', href: '/dashboard/employer' },
-    { name: 'Jobs', href: '/dashboard/employer/jobs' },
-    { name: 'Applicants', href: '/dashboard/employer/applicants' },
-    { name: 'Candidates', href: '/dashboard/employer/candidates' },
-    { name: 'Messages', href: '/dashboard/employer/messages' },
+    { name: 'Home', href: '/dashboard/recruiter' },
+    { name: 'Jobs', href: '/dashboard/recruiter/jobs' },
+    { name: 'Applicants', href: '/dashboard/recruiter/applicants' },
+    { name: 'Candidates', href: '/dashboard/recruiter/candidates' },
+    { name: 'Messages', href: '/dashboard/recruiter/messages' },
   ],
 
+<<<<<<< Updated upstream
   // Institution / Verifier / Issuer
   institution: [
     { name: 'Dashboard', href: '/university' },
@@ -86,16 +85,14 @@ export const SIDEBAR_LINKS: Record<RoleKey, SidebarLink[]> = {
   ],
 
   // Admin & Auditor
+=======
+  // System Admin
+>>>>>>> Stashed changes
   admin: [
     { name: 'Dashboard', href: '/dashboard/admin' },
     { name: 'Users', href: '/dashboard/admin#users' },
     { name: 'Logs', href: '/dashboard/admin#logs' },
     { name: 'Settings', href: '/dashboard/admin#settings' },
-  ],
-  auditor: [
-    { name: 'Dashboard', href: '/dashboard/auditor' },
-    { name: 'Reports', href: '/dashboard/auditor#reports' },
-    { name: 'Logs', href: '/dashboard/auditor#logs' },
   ],
 };
 

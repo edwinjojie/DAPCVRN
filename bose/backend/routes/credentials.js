@@ -2,34 +2,232 @@ import express from 'express';
 import Joi from 'joi';
 import fabricNetwork from '../services/fabricNetwork.js';
 import { v4 as uuidv4 } from 'uuid';
+import multer from 'multer';
+import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
+import { Credential } from '../models/index.js';
+import User from '../models/User.js';
+import VerificationRequest from '../models/VerificationRequest.js';
 
 const router = express.Router();
 
-// In-memory mock credentials for candidate flows (Phase 2)
-let mockCreds = [
-  { _id: 'c1', ownerId: 'u1', title: 'B.Tech Computer Science', type: 'academic', status: 'verified', issuedBy: 'inst1' },
-  { _id: 'c2', ownerId: 'u1', title: 'Blockchain Internship', type: 'professional', status: 'pending', issuedBy: null },
-];
+// Multer memory storage so we can compute hash before persisting
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
 
-// Candidate endpoints
-router.get('/my', (req, res) => res.json(mockCreds));
+// GET my credentials (real DB-backed)
+router.get('/my', async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-router.post('/upload', (req, res) => {
-  const cred = { _id: `c${mockCreds.length + 1}`, ...req.body, status: 'pending' };
-  mockCreds.push(cred);
-  res.json(cred);
+    const creds = await Credential.find({ userId }).sort({ issueDate: -1 }).lean();
+    res.json(creds); // Return array directly for frontend compatibility
+  } catch (error) {
+    console.error('Error fetching user credentials:', error);
+    res.status(500).json({ error: 'Failed to load credentials' });
+  }
 });
 
-router.delete('/:id', (req, res) => {
-  mockCreds = mockCreds.filter(c => c._id !== req.params.id);
-  res.json({ success: true });
+// Upload a credential file and metadata
+router.post('/upload', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'File is required' });
+
+    const allowed = [
+      'application/pdf',
+      'image/png',
+      'image/jpeg',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/msword'
+    ];
+    if (!allowed.includes(req.file.mimetype)) {
+      return res.status(400).json({ error: 'Unsupported file type' });
+    }
+
+    const userId = req.user?.userId || req.user?.id;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    // Compute SHA-256 hash of the file
+    const dataHash = crypto.createHash('sha256').update(req.file.buffer).digest('hex');
+
+    // Persist file to local uploads folder (backend/uploads/credentials)
+    const uploadsDir = path.join(process.cwd(), 'backend', 'uploads', 'credentials');
+    await fs.promises.mkdir(uploadsDir, { recursive: true });
+    const filename = `${uuidv4()}-${req.file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+    const filepath = path.join(uploadsDir, filename);
+    await fs.promises.writeFile(filepath, req.file.buffer);
+
+    // Try to fetch user info from DB to populate required fields
+    let userRecord = null;
+    try { userRecord = await User.findById(userId).lean(); } catch (e) { /* ignore */ }
+
+    const credentialId = uuidv4();
+    const now = new Date();
+
+    const newCred = new Credential({
+      credentialId,
+      userId,
+      studentName: req.body.studentName || userRecord?.name || req.user?.name || 'Unknown Student',
+      studentEmail: req.body.studentEmail || userRecord?.email || req.user?.email || 'unknown@example.com',
+      type: req.body.type || 'other',
+      title: req.body.title || req.file.originalname,
+      description: req.body.description || '',
+      institution: req.body.institution || req.body.issuer || req.body.organization || (userRecord?.organization || 'Unknown'),
+      institutionId: req.body.institutionId || null,
+      issuer: req.body.issuer || (userRecord?.organization || 'Self'),
+      issuerId: req.body.issuerId || userId,
+      issueDate: req.body.issuedOn ? new Date(req.body.issuedOn) : now,
+      status: 'pending',
+      dataHash,
+      organization: req.body.organization || userRecord?.organization || req.user?.organization || 'Org1MSP',
+      attachments: [{ filename, url: `/uploads/credentials/${filename}`, uploadedAt: now }]
+    });
+
+    await newCred.save();
+
+    // Auto-create verification request by finding verifier from institution name
+    const institutionName = req.body.institution;
+
+    if (institutionName && institutionName.trim() !== '') {
+      console.log(`Looking for verifier for institution: ${institutionName}`);
+
+      // Try to find a verifier from this institution
+      // Use case-insensitive regex to match institution names flexibly
+      const verifier = await User.findOne({
+        $or: [
+          { organization: institutionName },
+          { organization: { $regex: new RegExp(institutionName, 'i') } }
+        ],
+        role: 'university',
+        isActive: true
+      }).lean();
+
+      if (verifier) {
+        console.log(`Found verifier: ${verifier.name} (${verifier.email}) for institution: ${institutionName}`);
+
+        const vr = new VerificationRequest({
+          credentialId: newCred._id,
+          requesterId: userId,
+          verifierId: verifier._id,
+          status: 'pending',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
+        await vr.save();
+
+        console.log(`Verification request created: ${vr._id}`);
+
+        // Notify via websocket
+        try {
+          if (global.wss) {
+            global.wss.clients.forEach(client => {
+              if (client.readyState === 1) {
+                client.send(JSON.stringify({
+                  type: 'verification.request',
+                  requestId: vr._id,
+                  credentialId: newCred.credentialId,
+                  verifierId: verifier._id,
+                  verifierName: verifier.name,
+                  studentName: newCred.studentName,
+                  credentialTitle: newCred.title
+                }));
+              }
+            });
+          }
+        } catch (e) {
+          console.warn('WebSocket notification failed:', e);
+        }
+      } else {
+        console.log(`No verifier found for institution: ${institutionName}`);
+        console.log('Credential uploaded but no verification request created');
+      }
+    } else {
+      console.log('No institution name provided, skipping verification request creation');
+    }
+
+    // Broadcast websocket event for uploads
+    try {
+      if (global.wss) {
+        global.wss.clients.forEach(client => {
+          if (client.readyState === 1) {
+            client.send(JSON.stringify({
+              type: 'credential.uploaded',
+              credentialId: credentialId,
+              userId,
+              timestamp: new Date().toISOString()
+            }));
+          }
+        });
+      }
+    } catch (e) { console.warn('WebSocket broadcast failed', e); }
+
+    res.status(201).json({ success: true, credential: newCred.toObject() });
+  } catch (error) {
+    console.error('Error uploading credential:', error);
+    res.status(500).json({ error: 'Failed to upload credential' });
+  }
 });
 
-router.post('/request/:id', (req, res) => {
-  const id = req.params.id;
-  const cred = mockCreds.find(c => c._id === id);
-  if (cred) cred.status = 'pending';
-  res.json({ success: true });
+// Delete credential
+router.delete('/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    const userId = req.user?.userId || req.user?.id;
+    const cred = await Credential.findOne({ credentialId: id });
+    if (!cred) return res.status(404).json({ error: 'Credential not found' });
+    if (String(cred.userId) !== String(userId) && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    await cred.remove();
+    return res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting credential:', error);
+    res.status(500).json({ error: 'Failed to delete credential' });
+  }
+});
+
+// Request verification for an uploaded credential
+router.post('/request/:credentialId', async (req, res) => {
+  try {
+    const { credentialId } = req.params;
+    const userId = req.user?.userId || req.user?.id;
+
+    const cred = await Credential.findOne({ credentialId });
+    if (!cred) return res.status(404).json({ error: 'Credential not found' });
+    if (String(cred.userId) !== String(userId)) {
+      return res.status(403).json({ error: 'Can only request verification for your own credentials' });
+    }
+
+    const verifierId = req.body.verifierId;
+    if (!verifierId) return res.status(400).json({ error: 'verifierId is required' });
+
+    const vr = new VerificationRequest({
+      credentialId: cred._id,
+      requesterId: userId,
+      verifierId,
+      status: 'pending',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+    await vr.save();
+
+    // Notify via websocket
+    try {
+      if (global.wss) {
+        global.wss.clients.forEach(client => {
+          if (client.readyState === 1) {
+            client.send(JSON.stringify({ type: 'verification.request', requestId: vr._id, credentialId: cred.credentialId }));
+          }
+        });
+      }
+    } catch (e) { /* ignore */ }
+
+    res.status(201).json({ success: true, request: vr.toObject() });
+  } catch (error) {
+    console.error('Error creating verification request:', error);
+    res.status(500).json({ error: 'Failed to create verification request' });
+  }
 });
 
 // Validation schemas
@@ -89,21 +287,83 @@ router.post('/issue', async (req, res) => {
   }
 });
 
+// List verification requests (for verifiers/institutions) - MUST BE BEFORE /:credentialId
+router.get('/requests', async (req, res) => {
+  try {
+    const role = req.user?.role;
+    const userId = req.user?.userId || req.user?.id;
+
+    console.log(`Fetching verification requests for user: ${userId}, role: ${role}`);
+
+    let query = {};
+    if (role === 'university') {
+      query = { verifierId: userId };
+    } else if (role === 'student') {
+      query = { requesterId: userId };
+    } else if (role === 'admin') {
+      query = {};
+    } else {
+      return res.status(403).json({ error: 'Insufficient permissions' });
+    }
+
+    console.log('Query:', JSON.stringify(query));
+
+    const requests = await VerificationRequest.find(query)
+      .sort({ createdAt: -1 })
+      .lean();
+
+    console.log(`Found ${requests.length} verification requests`);
+
+    // Populate credential details for each request
+    const populatedRequests = await Promise.all(
+      requests.map(async (request) => {
+        const credential = await Credential.findById(request.credentialId).lean();
+        const requester = await User.findById(request.requesterId).select('name email').lean();
+        return {
+          ...request,
+          credential: credential || null,
+          requester: requester || null
+        };
+      })
+    );
+
+    console.log(`Returning ${populatedRequests.length} populated requests`);
+    res.json(populatedRequests);
+  } catch (error) {
+    console.error('Error fetching verification requests:', error);
+    res.status(500).json({ error: 'Failed to retrieve requests' });
+  }
+});
+
 // Get credential by ID
 router.get('/:credentialId', async (req, res) => {
   try {
     const { credentialId } = req.params;
-    
-    const credential = await fabricNetwork.getCredential(credentialId);
-    
-    if (!credential) {
-      return res.status(404).json({ error: 'Credential not found' });
+
+    // Try MongoDB first
+    const credential = await Credential.findById(credentialId).lean();
+
+    if (credential) {
+      return res.json({
+        success: true,
+        credential
+      });
     }
 
-    res.json({
-      success: true,
-      credential
-    });
+    // Fallback to Fabric if not in MongoDB
+    try {
+      const fabricCred = await fabricNetwork.getCredential(credentialId);
+      if (fabricCred) {
+        return res.json({
+          success: true,
+          credential: fabricCred
+        });
+      }
+    } catch (fabricError) {
+      console.warn('Fabric network unavailable, using MongoDB only');
+    }
+
+    return res.status(404).json({ error: 'Credential not found' });
   } catch (error) {
     console.error('Error getting credential:', error);
     res.status(500).json({ error: 'Failed to retrieve credential' });
@@ -188,6 +448,106 @@ router.get('/student/:studentId', async (req, res) => {
   } catch (error) {
     console.error('Error querying credentials by student:', error);
     res.status(500).json({ error: 'Failed to retrieve credentials' });
+  }
+});
+
+// Approve a verification request (verifier/institution)
+router.post('/requests/:id/approve', async (req, res) => {
+  try {
+    const requestId = req.params.id;
+    const userId = req.user?.userId || req.user?.id;
+    const role = req.user?.role;
+
+    const vr = await VerificationRequest.findById(requestId);
+    if (!vr) return res.status(404).json({ error: 'Verification request not found' });
+    if (String(vr.verifierId) !== String(userId) && role !== 'admin') {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    // Load credential
+    const cred = await Credential.findById(vr.credentialId);
+    if (!cred) return res.status(404).json({ error: 'Credential not found' });
+
+    // Mark approved
+    vr.status = 'approved';
+    vr.updatedAt = new Date();
+    await vr.save();
+
+    // Update credential as verified
+    cred.status = 'verified';
+    cred.verifiedBy = userId;
+    cred.verifiedAt = new Date();
+    await cred.save();
+
+    // Push to blockchain (asynchronous call here, capture response)
+    try {
+      const fabricResult = await fabricNetwork.issueCredential(
+        cred.credentialId,
+        cred.userId,
+        cred.dataHash,
+        req.user?.organization || cred.organization
+      );
+
+      if (fabricResult && fabricResult.transactionId) {
+        cred.blockchainTxId = fabricResult.transactionId;
+        cred.blockchainTimestamp = fabricResult.timestamp ? new Date(fabricResult.timestamp) : new Date();
+        await cred.save();
+      }
+    } catch (e) {
+      console.warn('Blockchain push failed, request approved but blockchain anchor pending', e);
+    }
+
+    // Notify requester via websocket
+    try {
+      if (global.wss) {
+        global.wss.clients.forEach(client => {
+          if (client.readyState === 1) {
+            client.send(JSON.stringify({ type: 'verification.approved', requestId: vr._id, credentialId: cred.credentialId }));
+          }
+        });
+      }
+    } catch (e) { /* ignore */ }
+
+    res.json({ success: true, message: 'Verification approved', credential: cred.toObject() });
+  } catch (error) {
+    console.error('Error approving verification request:', error);
+    res.status(500).json({ error: 'Failed to approve request' });
+  }
+});
+
+// Reject a verification request
+router.post('/requests/:id/reject', async (req, res) => {
+  try {
+    const requestId = req.params.id;
+    const userId = req.user?.userId || req.user?.id;
+    const role = req.user?.role;
+
+    const vr = await VerificationRequest.findById(requestId);
+    if (!vr) return res.status(404).json({ error: 'Verification request not found' });
+    if (String(vr.verifierId) !== String(userId) && role !== 'admin') {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    vr.status = 'rejected';
+    vr.notes = req.body.notes || null;
+    vr.updatedAt = new Date();
+    await vr.save();
+
+    // Notify requester via websocket
+    try {
+      if (global.wss) {
+        global.wss.clients.forEach(client => {
+          if (client.readyState === 1) {
+            client.send(JSON.stringify({ type: 'verification.rejected', requestId: vr._id, credentialId: vr.credentialId }));
+          }
+        });
+      }
+    } catch (e) { /* ignore */ }
+
+    res.json({ success: true, message: 'Verification request rejected' });
+  } catch (error) {
+    console.error('Error rejecting verification request:', error);
+    res.status(500).json({ error: 'Failed to reject request' });
   }
 });
 

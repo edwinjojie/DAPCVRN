@@ -26,13 +26,15 @@ export default function Jobs() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">My Jobs</h1>
-        <Button onClick={() => { setEditing(null); setEditorOpen(true); }}>Post Job</Button>
+        <h1 className="text-3xl font-bold text-slate-800">My Jobs</h1>
+        <Button onClick={() => { setEditing(null); setEditorOpen(true); }} className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg">
+          Post Job
+        </Button>
       </div>
 
-      <Card>
-        <CardHeader className="space-y-3">
-          <CardTitle>Job Listings</CardTitle>
+      <Card className="border-2 border-slate-200 shadow-xl">
+        <CardHeader className="space-y-3 bg-gradient-to-r from-slate-50 to-white">
+          <CardTitle className="text-slate-800">Job Listings</CardTitle>
           <JobFilterBar
             query={filters.query}
             status={filters.status}
@@ -40,10 +42,10 @@ export default function Jobs() {
           />
         </CardHeader>
         <CardContent className="space-y-4">
-          {loading && <div className="text-sm text-gray-500">Loading jobs…</div>}
-          {error && <div className="text-sm text-red-600">{error}</div>}
+          {loading && <div className="text-sm text-slate-600">Loading jobs…</div>}
+          {error && <div className="text-sm text-red-600 font-semibold">{error}</div>}
           {filtered.length === 0 && !loading && (
-            <div className="text-sm text-gray-500">No jobs found</div>
+            <div className="text-sm text-slate-600">No jobs found</div>
           )}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filtered.map(job => (

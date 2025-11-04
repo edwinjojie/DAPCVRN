@@ -31,9 +31,9 @@ export function getStatusColor(status: string) {
 export function getRoleColor(role: string) {
   const colors = {
     student: 'bg-blue-100 text-blue-800',
-    employer: 'bg-purple-100 text-purple-800',
-    verifier: 'bg-green-100 text-green-800',
-    auditor: 'bg-red-100 text-red-800'
+    university: 'bg-green-100 text-green-800',
+    recruiter: 'bg-purple-100 text-purple-800',
+    admin: 'bg-red-100 text-red-800'
   };
   return colors[role as keyof typeof colors] || 'bg-gray-100 text-gray-800';
 }
