@@ -1,30 +1,32 @@
 import express from "express";
+import { User } from '../models/index.js';
 
 const router = express.Router();
 
-let credentials = [
-  {
-    id: "CR-1001",
-    student: "Ravi Menon",
-    course: "B.Tech CSE",
-    year: 2024,
-    status: "issued",
-  },
-];
+// Get all active universities/institutions for dropdown
+router.get('/', async (req, res) => {
+  try {
+    const universities = await User.find({
+      role: 'university',
+      isActive: true
+    })
+    .select('name email organization')
+    .sort({ organization: 1 })
+    .lean();
 
-router.get("/issued", (req, res) => res.json(credentials));
+    // Return array of institutions with their details
+    const institutions = universities.map(uni => ({
+      id: uni._id.toString(),
+      name: uni.organization,
+      contactName: uni.name,
+      contactEmail: uni.email
+    }));
 
-router.post("/issue", (req, res) => {
-  const { student, course, year } = req.body;
-  const newCred = {
-    id: `CR-${Date.now()}`,
-    student,
-    course,
-    year,
-    status: "issued",
-  };
-  credentials.push(newCred);
-  res.json(newCred);
+    res.json(institutions);
+  } catch (error) {
+    console.error('Error fetching institutions:', error);
+    res.status(500).json({ error: 'Failed to fetch institutions' });
+  }
 });
 
 export default router;

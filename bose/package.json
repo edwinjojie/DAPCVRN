@@ -10,15 +10,12 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-<<<<<<< Updated upstream
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "test:university": "jest backend/routes/university.test.js"
-=======
+    "test:university": "jest backend/routes/university.test.js",
     "seed": "node backend/seeders/seedDatabase.js",
     "seed:clear": "node backend/seeders/clearDatabase.js"
->>>>>>> Stashed changes
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.0.5",

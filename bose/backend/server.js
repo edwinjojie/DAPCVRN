@@ -31,11 +31,8 @@ import { setupWebSocket } from './services/websocket.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import adminRouter from './routes/admin.js';
 import institutionsRouter from './routes/institutions.js';
-<<<<<<< Updated upstream
 import universityRouter from './routes/university.js';
-=======
 import path from 'path';
->>>>>>> Stashed changes
 
 dotenv.config();
 

@@ -48,7 +48,12 @@ export default function IssuedCredentials() {
     {
       key: 'issuedAt',
       label: 'Issued Date',
-      render: (value: string) => format(new Date(value), 'MMM dd, yyyy HH:mm')
+      render: (value: string) => {
+        if (!value) return '—';
+        const d = new Date(value);
+        if (isNaN(d.getTime())) return '—';
+        return format(d, 'MMM dd, yyyy HH:mm');
+      }
     },
     {
       key: 'hash',
@@ -194,7 +199,7 @@ export default function IssuedCredentials() {
         columns={columns}
         data={data?.data || []}
         loading={loading}
-        error={error}
+    error={error || undefined}
         pagination={{
           page,
           limit: 10,

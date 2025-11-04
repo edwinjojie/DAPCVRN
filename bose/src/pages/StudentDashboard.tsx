@@ -85,6 +85,8 @@ export default function StudentDashboard() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [verifyingInstitution, setVerifyingInstitution] = useState<string>('');
+  const [institutions, setInstitutions] = useState<Array<{ id: string; name: string; contactName: string; contactEmail: string }>>([]);
+  const [loadingInstitutions, setLoadingInstitutions] = useState(false);
   const [certificateDetails, setCertificateDetails] = useState({
     // Degree related
     universityName: '',
@@ -125,6 +127,31 @@ export default function StudentDashboard() {
     enrollmentId: 'ENR-2025-001',
     program: 'B.Sc. Computer Science',
   }), [user]);
+
+  // Load institutions from API
+  useEffect(() => {
+    const loadInstitutions = async () => {
+      try {
+        setLoadingInstitutions(true);
+        const response = await api.get('/api/institutions');
+        if (response.data) {
+          setInstitutions(response.data);
+          console.log('Loaded institutions:', response.data);
+        }
+      } catch (error) {
+        console.error('Error loading institutions:', error);
+        toast({
+          title: 'Failed to load institutions',
+          description: 'Could not fetch list of universities',
+          variant: 'error'
+        });
+      } finally {
+        setLoadingInstitutions(false);
+      }
+    };
+
+    loadInstitutions();
+  }, []);
 
   // Load credentials from API
   useEffect(() => {
@@ -1216,24 +1243,46 @@ export default function StudentDashboard() {
               </div>
             )}
 
-            {/* Institution Name Input */}
+            {/* Institution Name Dropdown */}
             <div className="space-y-4 border-t pt-4">
               <h3 className="text-lg font-bold text-slate-800">Verifying Institution <span className="text-red-500">*</span></h3>
               <div>
                 <label className="text-sm font-semibold text-slate-800 mb-2 block">
-                  Enter the name of the institution that will verify this credential
+                  Select the institution that will verify this credential
                 </label>
-                <Input
-                  type="text"
-                  placeholder="e.g., Massachusetts Institute of Technology, Stanford University"
-                  value={verifyingInstitution}
-                  onChange={(e) => setVerifyingInstitution(e.target.value)}
-                  required
-                  className="w-full"
-                />
-                <p className="text-xs text-gray-500 mt-2">
-                  This should be the official name of the institution that issued or can verify this credential
+                {loadingInstitutions ? (
+                  <div className="text-sm text-slate-600">Loading institutions...</div>
+                ) : (
+                  <select
+                    value={verifyingInstitution}
+                    onChange={(e) => setVerifyingInstitution(e.target.value)}
+                    required
+                    className="w-full rounded-lg border-2 border-slate-300 px-4 py-3 text-sm text-slate-800 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500 transition-all"
+                  >
+                    <option value="">-- Select a University --</option>
+                    {institutions.map((inst) => (
+                      <option key={inst.id} value={inst.name}>
+                        {inst.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                <p className="text-xs text-slate-600 mt-2">
+                  Choose from the list of verified institutions
                 </p>
+                {verifyingInstitution && (
+                  <div className="mt-3 p-3 bg-blue-50 border-l-4 border-blue-500 rounded">
+                    <p className="text-xs text-blue-800">
+                      <strong>Selected:</strong> {verifyingInstitution}
+                    </p>
+                    {institutions.find(i => i.name === verifyingInstitution) && (
+                      <p className="text-xs text-blue-700 mt-1">
+                        Contact: {institutions.find(i => i.name === verifyingInstitution)?.contactName}
+                        ({institutions.find(i => i.name === verifyingInstitution)?.contactEmail})
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 

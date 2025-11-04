@@ -25,7 +25,17 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    // Fallback to avoid runtime crash during HMR or initial loads when provider
+    // might not be mounted yet. This returns a safe default with noop methods.
+    console.warn('useAuth called outside AuthProvider - returning fallback');
+    return {
+      user: null,
+      token: null,
+      loading: true,
+      // login should be awaited by callers; provide a function that rejects
+      login: async () => { throw new Error('AuthProvider not initialized'); },
+      logout: () => {}
+    } as AuthContextType;
   }
   return context;
 }
