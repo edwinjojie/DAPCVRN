@@ -7,6 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../components/ui/toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import api from '../lib/api';
+import jsPDF from 'jspdf';
 import { 
   Upload, 
   Eye, 
@@ -81,6 +82,10 @@ export default function StudentDashboard() {
   const [shareOpen, setShareOpen] = useState(false);
   const [shareOptions, setShareOptions] = useState({ expiry: '24h', scope: 'full', consent: false, nfc: false });
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [recommendationDetailsOpen, setRecommendationDetailsOpen] = useState(false);
+  const [selectedRecommendation, setSelectedRecommendation] = useState<typeof recommendations[0] | null>(null);
+  const [certificateDetailsOpen, setCertificateDetailsOpen] = useState(false);
+  const [selectedCertificate, setSelectedCertificate] = useState<CertificateItem | null>(null);
   const [certificateType, setCertificateType] = useState<'degree' | 'job' | 'course'>('degree');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
@@ -503,6 +508,104 @@ export default function StudentDashboard() {
     navigate('/login', { replace: true });
   };
 
+  const handleExportPortfolio = () => {
+    const doc = new jsPDF();
+
+    // Set up document
+    doc.setFontSize(20);
+    doc.text('Student Portfolio', 20, 30);
+
+    // Personal Information
+    doc.setFontSize(16);
+    doc.text('Personal Information', 20, 50);
+    doc.setFontSize(12);
+    doc.text(`Name: ${studentProfile.name}`, 20, 65);
+    doc.text(`Email: ${studentProfile.email}`, 20, 75);
+    doc.text(`Program: ${studentProfile.program}`, 20, 85);
+    doc.text(`Enrollment ID: ${studentProfile.enrollmentId}`, 20, 95);
+
+    let yPosition = 110;
+
+    // Education Section
+    doc.setFontSize(16);
+    doc.text('Education', 20, yPosition);
+    yPosition += 15;
+
+    doc.setFontSize(12);
+    certificates.filter(c => c.type === 'degree').forEach((cert, index) => {
+      doc.text(`${index + 1}. ${cert.name}`, 20, yPosition);
+      doc.text(`   Institution: ${cert.institution}`, 20, yPosition + 8);
+      doc.text(`   Grade: ${cert.grade || 'N/A'}`, 20, yPosition + 16);
+      doc.text(`   Issue Date: ${cert.issueDate ? new Date(cert.issueDate).toLocaleDateString() : 'N/A'}`, 20, yPosition + 24);
+      yPosition += 35;
+
+      // Check if we need a new page
+      if (yPosition > 250) {
+        doc.addPage();
+        yPosition = 30;
+      }
+    });
+
+    // Experience Section
+    if (yPosition > 200) {
+      doc.addPage();
+      yPosition = 30;
+    }
+
+    doc.setFontSize(16);
+    doc.text('Experience', 20, yPosition);
+    yPosition += 15;
+
+    doc.setFontSize(12);
+    jobHistory.forEach((job, index) => {
+      doc.text(`${index + 1}. ${job.title}`, 20, yPosition);
+      doc.text(`   Company: ${job.company}`, 20, yPosition + 8);
+      doc.text(`   Duration: ${new Date(job.startDate).toLocaleDateString()} - ${job.endDate ? new Date(job.endDate).toLocaleDateString() : 'Present'}`, 20, yPosition + 16);
+      doc.text(`   Description: ${job.description.substring(0, 80)}${job.description.length > 80 ? '...' : ''}`, 20, yPosition + 24);
+      yPosition += 35;
+
+      // Check if we need a new page
+      if (yPosition > 250) {
+        doc.addPage();
+        yPosition = 30;
+      }
+    });
+
+    // Skills Section
+    if (yPosition > 200) {
+      doc.addPage();
+      yPosition = 30;
+    }
+
+    doc.setFontSize(16);
+    doc.text('Skills', 20, yPosition);
+    yPosition += 15;
+
+    doc.setFontSize(12);
+    skillBadges.forEach((skill, index) => {
+      const status = skill.verified ? 'Verified' : 'Unverified';
+      doc.text(`${index + 1}. ${skill.name} (${skill.level}) - ${status}`, 20, yPosition);
+      doc.text(`   Category: ${skill.category}`, 20, yPosition + 8);
+      yPosition += 20;
+
+      // Check if we need a new page
+      if (yPosition > 250) {
+        doc.addPage();
+        yPosition = 30;
+      }
+    });
+
+    // Save the PDF
+    const fileName = `Portfolio_${studentProfile.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+    doc.save(fileName);
+
+    toast({
+      title: 'Portfolio Exported',
+      description: 'Your portfolio has been downloaded as a PDF',
+      variant: 'success'
+    });
+  };
+
   const renderSidebar = () => (
     <div className="w-64 bg-gradient-to-b from-slate-900 to-slate-800 border-r border-slate-700 min-h-screen p-4">
       <div className="space-y-2">
@@ -610,8 +713,23 @@ export default function StudentDashboard() {
                     </div>
                   )}
                   <div className="flex gap-2 mt-3">
-                    <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">View Details</Button>
-                    <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white">Share</Button>
+                    <Button
+                      size="sm"
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                      onClick={() => {
+                        setSelectedCertificate(item);
+                        setCertificateDetailsOpen(true);
+                      }}
+                    >
+                      View Details
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                      onClick={() => setShareOpen(true)}
+                    >
+                      Share
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -757,7 +875,10 @@ export default function StudentDashboard() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-slate-800">View Portfolio</h1>
-        <Button className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-lg">
+        <Button
+          onClick={handleExportPortfolio}
+          className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-lg"
+        >
           <Download className="w-4 h-4 mr-2" />
           Export Portfolio
         </Button>
@@ -960,8 +1081,29 @@ export default function StudentDashboard() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" className="bg-slate-600 hover:bg-slate-700 text-white">View Details</Button>
-                  <Button size="sm" className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-lg">Apply</Button>
+                  <Button
+                    size="sm"
+                    className="bg-slate-600 hover:bg-slate-700 text-white"
+                    onClick={() => {
+                      setSelectedRecommendation(rec);
+                      setRecommendationDetailsOpen(true);
+                    }}
+                  >
+                    View Details
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-lg"
+                    onClick={() => {
+                      toast({
+                        title: 'Application Submitted',
+                        description: `Successfully applied for ${rec.title} at ${rec.company}`,
+                        variant: 'success'
+                      });
+                    }}
+                  >
+                    Apply
+                  </Button>
                 </div>
               </div>
             </CardContent>
@@ -1521,6 +1663,236 @@ export default function StudentDashboard() {
               </div>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Recommendation Details Modal */}
+      <Dialog open={recommendationDetailsOpen} onOpenChange={setRecommendationDetailsOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Job Recommendation Details</DialogTitle>
+          </DialogHeader>
+          {selectedRecommendation && (
+            <div className="space-y-6">
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-2xl font-bold text-slate-800">{selectedRecommendation.title}</h3>
+                  <p className="text-lg text-slate-700 font-semibold">{selectedRecommendation.company}</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Award className="w-5 h-5 text-blue-600" />
+                      <span className="text-sm font-semibold text-blue-800">Matched Skill</span>
+                    </div>
+                    <span className="px-3 py-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-sm rounded-full font-semibold shadow-md">
+                      {selectedRecommendation.skill}
+                    </span>
+                  </div>
+
+                  <div className="bg-green-50 p-4 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                      <span className="text-sm font-semibold text-green-800">Match Percentage</span>
+                    </div>
+                    <span className="text-xl font-bold text-green-600">
+                      {selectedRecommendation.match}%
+                    </span>
+                  </div>
+                </div>
+
+                <div className="bg-slate-50 p-4 rounded-lg">
+                  <h4 className="text-lg font-semibold text-slate-800 mb-2">Why this matches your profile:</h4>
+                  <ul className="space-y-2 text-sm text-slate-700">
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                      <span>Strong match with your {selectedRecommendation.skill} skills</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                      <span>Based on your verified credentials and experience</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                      <span>Aligned with your career progression path</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="bg-yellow-50 p-4 rounded-lg border-l-4 border-yellow-400">
+                  <div className="flex items-start gap-2">
+                    <Lightbulb className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="text-sm font-semibold text-yellow-800">AI Recommendation</h4>
+                      <p className="text-sm text-yellow-700">
+                        This opportunity has a {selectedRecommendation.match}% skill match with your profile.
+                        Consider applying as it aligns well with your expertise in {selectedRecommendation.skill}.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => setRecommendationDetailsOpen(false)}
+                >
+                  Close
+                </Button>
+                <Button
+                  className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white"
+                  onClick={() => {
+                    toast({
+                      title: 'Application Submitted',
+                      description: `Successfully applied for ${selectedRecommendation.title} at ${selectedRecommendation.company}`,
+                      variant: 'success'
+                    });
+                    setRecommendationDetailsOpen(false);
+                  }}
+                >
+                  Apply Now
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Certificate Details Modal */}
+      <Dialog open={certificateDetailsOpen} onOpenChange={setCertificateDetailsOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Certificate Details</DialogTitle>
+          </DialogHeader>
+          {selectedCertificate && (
+            <div className="space-y-6">
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-2xl font-bold text-slate-800">{selectedCertificate.name}</h3>
+                  <p className="text-lg text-slate-700 font-semibold">{selectedCertificate.institution}</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <GraduationCap className="w-5 h-5 text-blue-600" />
+                      <span className="text-sm font-semibold text-blue-800">Type</span>
+                    </div>
+                    <span className="px-3 py-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-sm rounded-full font-semibold shadow-md capitalize">
+                      {selectedCertificate.type}
+                    </span>
+                  </div>
+
+                  <div className="bg-green-50 p-4 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                      <span className="text-sm font-semibold text-green-800">Status</span>
+                    </div>
+                    <span className={`px-3 py-1 text-sm rounded-full font-semibold shadow-md capitalize ${
+                      selectedCertificate.status === 'verified'
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-yellow-100 text-yellow-700'
+                    }`}>
+                      {selectedCertificate.status}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-slate-50 p-4 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Calendar className="w-4 h-4 text-slate-600" />
+                      <span className="text-sm font-semibold text-slate-800">Issue Date</span>
+                    </div>
+                    <p className="text-base font-medium text-slate-700">
+                      {selectedCertificate.issueDate ? new Date(selectedCertificate.issueDate).toLocaleDateString() : 'N/A'}
+                    </p>
+                  </div>
+
+                  <div className="bg-slate-50 p-4 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Clock className="w-4 h-4 text-slate-600" />
+                      <span className="text-sm font-semibold text-slate-800">Uploaded</span>
+                    </div>
+                    <p className="text-base font-medium text-slate-700">
+                      {new Date(selectedCertificate.uploadedAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+
+                {selectedCertificate.grade && (
+                  <div className="bg-yellow-50 p-4 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Award className="w-5 h-5 text-yellow-600" />
+                      <span className="text-sm font-semibold text-yellow-800">Grade</span>
+                    </div>
+                    <span className="text-xl font-bold text-yellow-700">
+                      {selectedCertificate.grade}
+                    </span>
+                  </div>
+                )}
+
+                {selectedCertificate.skills && selectedCertificate.skills.length > 0 && (
+                  <div className="bg-purple-50 p-4 rounded-lg">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Award className="w-5 h-5 text-purple-600" />
+                      <span className="text-sm font-semibold text-purple-800">Skills</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedCertificate.skills.map(skill => (
+                        <span key={skill} className="px-3 py-1 bg-gradient-to-r from-purple-500 to-purple-600 text-white text-sm rounded-full font-semibold shadow-md">
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {selectedCertificate.verifiedBy && (
+                  <div className="bg-green-50 p-4 rounded-lg border-l-4 border-green-400">
+                    <div className="flex items-start gap-2">
+                      <UserCheck className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <h4 className="text-sm font-semibold text-green-800">Verification Details</h4>
+                        <p className="text-sm text-green-700">
+                          Verified by: <strong>{selectedCertificate.verifiedBy}</strong>
+                        </p>
+                        {selectedCertificate.verifiedAt && (
+                          <p className="text-sm text-green-700 mt-1">
+                            Verified on: {new Date(selectedCertificate.verifiedAt).toLocaleDateString()}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {selectedCertificate.description && (
+                  <div className="bg-slate-50 p-4 rounded-lg">
+                    <h4 className="text-lg font-semibold text-slate-800 mb-2">Description</h4>
+                    <p className="text-sm text-slate-700">{selectedCertificate.description}</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => setCertificateDetailsOpen(false)}
+                >
+                  Close
+                </Button>
+                <Button
+                  className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white"
+                  onClick={() => setShareOpen(true)}
+                >
+                  Share Certificate
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
