@@ -70,7 +70,7 @@ export default function TestimonialsSection() {
             >
               <Quote size={40} className="text-[#3B82F6]/30 mb-6" />
 
-              <p className="text-gray-300 dark:text-gray-400 leading-relaxed mb-6">{testimonial.text}</p>
+              <p className="text-gray-600 dark:text-gray-300 leading-relaxed mb-6">{testimonial.text}</p>
 
               <div className="flex items-center mb-4">
                 {[...Array(testimonial.rating)].map((_, i) => (

@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import { Upload, CheckCircle, Briefcase } from 'lucide-react';
 
 export default function HowItWorksSection() {
@@ -91,12 +92,12 @@ export default function HowItWorksSection() {
           viewport={{ once: true }}
           className="text-center mt-16"
         >
-          <a
-            href="/login"
+          <Link
+            to="/login"
             className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-blue-500 to-green-400 dark:from-[#3B82F6] dark:to-[#00BFA6] text-white rounded-lg font-semibold text-lg hover:shadow-2xl hover:shadow-blue-500/50 dark:hover:shadow-[#3B82F6]/50 transition-all duration-300"
           >
             Start Your Journey
-          </a>
+          </Link>
         </motion.div>
       </div>
     </section>

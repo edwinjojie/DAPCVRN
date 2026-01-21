@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import { ArrowRight, Users, Building, UserCheck } from 'lucide-react';
 
 export default function CTASection() {
@@ -53,25 +54,28 @@ export default function CTASection() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
           {roles.map((role, index) => (
-            <motion.a
+            <motion.div
               key={index}
-              href={role.href}
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
               viewport={{ once: true }}
-              className="group relative p-8 bg-gradient-to-br from-white/5 to-white/0 dark:from-[#0B0C10]/5 dark:to-[#0B0C10]/0 backdrop-blur-sm border border-white/10 dark:border-[#0B0C10]/10 rounded-2xl hover:border-[#3B82F6]/50 hover:shadow-2xl hover:shadow-[#3B82F6]/20 transition-all duration-300 text-center"
             >
-              <div className="w-16 h-16 bg-gradient-to-br from-[#3B82F6] to-[#00BFA6] rounded-xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
-                <role.icon size={32} className="text-white" />
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">{role.title}</h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-6">{role.description}</p>
-              <div className="flex items-center justify-center space-x-2 text-[#3B82F6] group-hover:text-[#00BFA6] transition-colors duration-300">
-                <span className="font-semibold">Join Now</span>
-                <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-              </div>
-            </motion.a>
+              <Link
+                to={role.href}
+                className="group relative block p-8 bg-gradient-to-br from-white/5 to-white/0 dark:from-[#0B0C10]/5 dark:to-[#0B0C10]/0 backdrop-blur-sm border border-white/10 dark:border-[#0B0C10]/10 rounded-2xl hover:border-[#3B82F6]/50 hover:shadow-2xl hover:shadow-[#3B82F6]/20 transition-all duration-300 text-center h-full"
+              >
+                <div className="w-16 h-16 bg-gradient-to-br from-[#3B82F6] to-[#00BFA6] rounded-xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
+                  <role.icon size={32} className="text-white" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">{role.title}</h3>
+                <p className="text-gray-600 dark:text-gray-400 mb-6">{role.description}</p>
+                <div className="flex items-center justify-center space-x-2 text-[#3B82F6] group-hover:text-[#00BFA6] transition-colors duration-300">
+                  <span className="font-semibold">Join Now</span>
+                  <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                </div>
+              </Link>
+            </motion.div>
           ))}
         </div>
 
@@ -85,12 +89,12 @@ export default function CTASection() {
           <p className="text-gray-600 dark:text-gray-400 mb-6">
             Not sure which role fits you?
           </p>
-          <a
-            href="/about"
+          <Link
+            to="/about"
             className="inline-flex items-center px-6 py-3 bg-white/5 dark:bg-[#0B0C10]/5 backdrop-blur-sm border border-white/10 dark:border-[#0B0C10]/10 text-gray-900 dark:text-white rounded-lg font-medium hover:bg-white/10 dark:hover:bg-[#0B0C10]/10 transition-all duration-300"
           >
             Learn More About BOSE
-          </a>
+          </Link>
         </motion.div>
       </div>
     </section>

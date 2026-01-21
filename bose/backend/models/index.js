@@ -8,6 +8,7 @@ import Application from './Application.js';
 import Message from './Message.js';
 import Notification from './Notification.js';
 import Profile from './Profile.js';
+import Rating from './Rating.js';
 
 export {
   User,
@@ -17,8 +18,9 @@ export {
   Application,
   Message,
   Notification,
-  Profile
-  ,VerificationRequest
+  Profile,
+  Rating,
+  VerificationRequest
 };
 
 export default {
@@ -29,7 +31,8 @@ export default {
   Application,
   Message,
   Notification,
-  Profile
-  ,VerificationRequest
+  Profile,
+  Rating,
+  VerificationRequest
 };
 

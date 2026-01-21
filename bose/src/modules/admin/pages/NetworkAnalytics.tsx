@@ -1,32 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { useFabricTx } from '../hooks/useFabricTx';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { Button } from '../components/ui/button';
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+import { useAuth } from '../../../contexts/AuthContext';
+import { useFabricTx } from '../../../hooks/useFabricTx';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
+import { Button } from '../../../components/ui/button';
+import {
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
-  LineChart,
-  Line,
   PieChart,
   Pie,
   Cell,
   Area,
   AreaChart
 } from 'recharts';
-import { 
-  TrendingUp, 
-  Users, 
-  FileText, 
-  AlertTriangle, 
-  Download,
-  Filter,
-  Calendar
+import {
+  TrendingUp,
+  Users,
+  FileText,
+  AlertTriangle,
+  Download
 } from 'lucide-react';
 
 interface AnalyticsData {
@@ -127,7 +121,7 @@ export default function Analytics() {
           <h1 className="text-3xl font-bold text-gray-900">Analytics Dashboard</h1>
           <p className="text-gray-600">Comprehensive credential network insights</p>
         </div>
-        
+
         <div className="flex gap-2">
           <select
             className="px-4 py-2 border border-gray-200 rounded-md"
@@ -209,34 +203,34 @@ export default function Analytics() {
             <ResponsiveContainer width="100%" height={300}>
               <AreaChart data={trends}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis 
-                  dataKey="month" 
+                <XAxis
+                  dataKey="month"
                   tickFormatter={(value) => {
                     const date = new Date(value + '-01');
                     return date.toLocaleDateString('en-US', { month: 'short' });
                   }}
                 />
                 <YAxis />
-                <Tooltip 
+                <Tooltip
                   labelFormatter={(value) => {
                     const date = new Date(value + '-01');
                     return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
                   }}
                 />
-                <Area 
-                  type="monotone" 
-                  dataKey="active" 
+                <Area
+                  type="monotone"
+                  dataKey="active"
                   stackId="1"
-                  stroke="#10B981" 
-                  fill="#10B981" 
+                  stroke="#10B981"
+                  fill="#10B981"
                   fillOpacity={0.6}
                 />
-                <Area 
-                  type="monotone" 
-                  dataKey="revoked" 
+                <Area
+                  type="monotone"
+                  dataKey="revoked"
                   stackId="1"
-                  stroke="#EF4444" 
-                  fill="#EF4444" 
+                  stroke="#EF4444"
+                  fill="#EF4444"
                   fillOpacity={0.6}
                 />
               </AreaChart>
@@ -297,7 +291,7 @@ export default function Analytics() {
                   <tr key={org.organization} className="border-b hover:bg-gray-50">
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
-                        <div 
+                        <div
                           className="w-3 h-3 rounded-full"
                           style={{ backgroundColor: getOrgColor(org.organization) }}
                         ></div>

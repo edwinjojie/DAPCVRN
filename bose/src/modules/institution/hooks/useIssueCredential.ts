@@ -5,7 +5,7 @@ export function useIssueCredential(onSuccess?: () => void) {
   const { toast } = useToast();
 
   const issue = async (payload: any) => {
-    await api.post("/api/institutions/issue", payload);
+    await api.post("/api/credentials/issue", payload);
     toast({ title: "Credential issued", variant: "success" });
     onSuccess && onSuccess();
   };

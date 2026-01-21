@@ -32,6 +32,7 @@ import { errorHandler } from './middleware/errorHandler.js';
 import adminRouter from './routes/admin.js';
 import institutionsRouter from './routes/institutions.js';
 import universityRouter from './routes/university.js';
+import ratingsRouter from './routes/ratings.js';
 import path from 'path';
 
 dotenv.config();
@@ -161,6 +162,7 @@ app.use('/api/candidate/profile', authenticateToken, candidateProfileRouter);
 app.use('/api/credentials', authenticateToken, credentialsRouter);
 app.use('/api/applications', authenticateToken, applicationsRouter);
 app.use('/api/university', authenticateToken, universityRouter);
+app.use('/api/ratings', authenticateToken, ratingsRouter);
 
 // Serve uploaded files (credentials) - development only
 app.use('/uploads', express.static(path.join(process.cwd(), 'backend', 'uploads')));

@@ -1,25 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { useFabricTx } from '../hooks/useFabricTx';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
-import { useToast } from '../components/ui/toast';
-import { 
-  FileText, 
-  Plus, 
-  Search, 
-  CheckCircle, 
-  X, 
+import { useAuth } from '../../../contexts/AuthContext';
+import { useFabricTx } from '../../../hooks/useFabricTx';
+import { Card, CardContent } from '../../../components/ui/card';
+import { Button } from '../../../components/ui/button';
+import { Input } from '../../../components/ui/input';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../../../components/ui/dialog';
+import { useToast } from '../../../components/ui/toast';
+import {
+  FileText,
+  Plus,
+  Search,
+  CheckCircle,
+  X,
   Eye,
-  AlertTriangle,
   Hash,
   Calendar,
   Building
 } from 'lucide-react';
-import { formatDate, truncateHash, getStatusColor } from '../lib/utils';
-import { useStore } from '../store/useStore';
+import { formatDate, truncateHash, getStatusColor } from '../../../lib/utils';
+import { useStore } from '../../../store/useStore';
 
 interface Credential {
   credentialId: string;
@@ -35,11 +34,11 @@ export default function Credentials() {
   const { toast } = useToast();
   const { submitTransaction, evaluateTransaction, loading } = useFabricTx();
   const { credentials, setCredentials } = useStore();
-  
+
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedCredential, setSelectedCredential] = useState<Credential | null>(null);
-  
+
   // Issue credential form state
   const [issueForm, setIssueForm] = useState({
     studentId: '',
@@ -60,7 +59,7 @@ export default function Credentials() {
   const loadCredentials = async () => {
     try {
       let result;
-      
+
       if (user?.role === 'student') {
         result = await evaluateTransaction(`credentials/student/${user.id}`);
       } else if (user?.role === 'auditor') {
@@ -84,7 +83,7 @@ export default function Credentials() {
 
   const handleIssueCredential = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!issueForm.studentId || !issueForm.dataHash) {
       toast({
         title: 'Validation Error',
@@ -96,7 +95,7 @@ export default function Credentials() {
 
     try {
       const result = await submitTransaction('credentials/issue', issueForm);
-      
+
       if (result.success) {
         toast({
           title: 'Credential Issued Successfully',
@@ -119,7 +118,7 @@ export default function Credentials() {
 
   const handleVerifyCredential = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!verifyForm.credentialId || !verifyForm.dataHash) {
       toast({
         title: 'Validation Error',
@@ -131,7 +130,7 @@ export default function Credentials() {
 
     try {
       const result = await submitTransaction('credentials/verify', verifyForm);
-      
+
       if (result.success) {
         toast({
           title: result.data.valid ? 'Credential Valid' : 'Credential Invalid',
@@ -161,7 +160,7 @@ export default function Credentials() {
         credentialId,
         reason: 'Administrative revocation'
       });
-      
+
       if (result.success) {
         toast({
           title: 'Credential Revoked',
@@ -182,12 +181,12 @@ export default function Credentials() {
   };
 
   const filteredCredentials = credentials.filter(cred => {
-    const matchesSearch = 
+    const matchesSearch =
       cred.credentialId.toLowerCase().includes(searchTerm.toLowerCase()) ||
       cred.studentId.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesStatus = filterStatus === 'all' || cred.status === filterStatus;
-    
+
     return matchesSearch && matchesStatus;
   });
 
@@ -202,7 +201,7 @@ export default function Credentials() {
           <h1 className="text-3xl font-bold text-gray-900">Credentials</h1>
           <p className="text-gray-600">Manage blockchain credentials and verification</p>
         </div>
-        
+
         <div className="flex gap-2">
           {canVerify && (
             <Dialog>
@@ -278,7 +277,7 @@ export default function Credentials() {
                   </div>
                   <div>
                     <label className="text-sm font-medium">Credential Type</label>
-                    <select 
+                    <select
                       className="w-full p-2 border border-gray-200 rounded-md"
                       value={issueForm.credentialType}
                       onChange={(e) => setIssueForm(prev => ({ ...prev, credentialType: e.target.value }))}
@@ -347,12 +346,12 @@ export default function Credentials() {
                       <p className="text-sm text-gray-500">Student: {credential.studentId}</p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-3">
                     <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(credential.status)}`}>
                       {credential.status}
                     </span>
-                    
+
                     <div className="flex gap-1">
                       <Button
                         variant="ghost"
@@ -361,7 +360,7 @@ export default function Credentials() {
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      
+
                       {canRevoke && credential.status === 'active' && (
                         <Button
                           variant="ghost"
@@ -375,7 +374,7 @@ export default function Credentials() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                   <div className="flex items-center gap-2">
                     <Hash className="h-4 w-4 text-gray-400" />
@@ -399,7 +398,7 @@ export default function Credentials() {
               <FileText className="h-12 w-12 mx-auto mb-4 text-gray-400" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No credentials found</h3>
               <p className="text-gray-500 mb-4">
-                {searchTerm || filterStatus !== 'all' 
+                {searchTerm || filterStatus !== 'all'
                   ? 'Try adjusting your search or filters'
                   : 'No credentials have been issued yet'
                 }
@@ -424,7 +423,7 @@ export default function Credentials() {
               Complete information about this blockchain credential
             </DialogDescription>
           </DialogHeader>
-          
+
           {selectedCredential && (
             <div className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
@@ -441,17 +440,17 @@ export default function Credentials() {
                   </div>
                 </div>
               </div>
-              
+
               <div>
                 <label className="text-sm font-medium text-gray-500">Student ID</label>
                 <p className="mt-1">{selectedCredential.studentId}</p>
               </div>
-              
+
               <div>
                 <label className="text-sm font-medium text-gray-500">Data Hash</label>
                 <p className="mt-1 font-mono text-sm break-all">{selectedCredential.dataHash}</p>
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-gray-500">Issuing Organization</label>

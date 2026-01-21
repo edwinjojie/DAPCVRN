@@ -181,7 +181,17 @@
               </div>
 
               <div className="grid gap-3">
-                {demoAccounts.map((account) => (
+                {demoAccounts.map((account) => {
+                  const colorStyles = {
+                    blue: { bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-300', border: 'border-blue-200 dark:border-blue-700' },
+                    purple: { bg: 'bg-purple-100 dark:bg-purple-900/30', text: 'text-purple-700 dark:text-purple-300', border: 'border-purple-200 dark:border-purple-700' },
+                    green: { bg: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-700 dark:text-green-300', border: 'border-green-200 dark:border-green-700' },
+                    red: { bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-700 dark:text-red-300', border: 'border-red-200 dark:border-red-700' },
+                    orange: { bg: 'bg-orange-100 dark:bg-orange-900/30', text: 'text-orange-700 dark:text-orange-300', border: 'border-orange-200 dark:border-orange-700' },
+                    gray: { bg: 'bg-gray-100 dark:bg-gray-900/30', text: 'text-gray-700 dark:text-gray-300', border: 'border-gray-200 dark:border-gray-700' }
+                  }[account.color as string] || { bg: 'bg-gray-100 dark:bg-gray-900/30', text: 'text-gray-700 dark:text-gray-300', border: 'border-gray-200 dark:border-gray-700' };
+
+                  return (
                   <button
                     key={account.email}
                     onClick={() => handleDemoLogin(account.email)}
@@ -192,7 +202,7 @@
                         <div className="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                           {account.role}
                         </div>
-                        <span className={`text-xs px-2.5 py-1 rounded-full font-medium bg-${account.color}-100 dark:bg-${account.color}-900/30 text-${account.color}-700 dark:text-${account.color}-300 border border-${account.color}-200 dark:border-${account.color}-700`}>
+                        <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${colorStyles.bg} ${colorStyles.text} border ${colorStyles.border}`}>
                           {account.org}
                         </span>
                       </div>
@@ -202,7 +212,7 @@
                       </div>
                     </div>
                   </button>
-                ))}
+                )})}
               </div>
 
               <div className="text-xs text-center text-gray-500 space-y-1">

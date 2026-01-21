@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import { ArrowRight, Shield, Database, Users } from 'lucide-react';
 
 export default function HeroSection() {
@@ -58,13 +59,13 @@ export default function HeroSection() {
             transition={{ duration: 0.8, delay: 0.5 }}
             className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6 pt-8"
           >
-            <a
-              href="/login"
+            <Link
+              to="/login"
               className="group relative px-8 py-4 bg-gradient-to-r from-blue-500 to-green-400 dark:from-[#3B82F6] dark:to-[#00BFA6] text-white rounded-lg font-semibold text-lg hover:shadow-2xl hover:shadow-blue-500/50 dark:hover:shadow-[#3B82F6]/50 transition-all duration-300 flex items-center space-x-2"
             >
               <span>Get Started</span>
               <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-            </a>
+            </Link>
             <a
               href="#how-it-works"
               className="px-8 py-4 bg-gray-100/5 dark:bg-white/5 backdrop-blur-sm border border-gray-200/10 dark:border-white/10 text-gray-900 dark:text-white rounded-lg font-semibold text-lg hover:bg-gray-200/10 dark:hover:bg-white/10 transition-all duration-300"

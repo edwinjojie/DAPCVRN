@@ -8,9 +8,14 @@ export function useIssuedCredentials() {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const res = await api.get("/api/institutions/issued");
-      setData(res.data);
-      setLoading(false);
+      try {
+        const res = await api.get("/api/university/credentials/issued");
+        setData(res.data.data || res.data); // Handle potential pagination structure
+      } catch (err) {
+        console.error("Failed to fetch issued credentials", err);
+      } finally {
+        setLoading(false);
+      }
     })();
   }, []);
 
