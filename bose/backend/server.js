@@ -33,6 +33,7 @@ import adminRouter from './routes/admin.js';
 import institutionsRouter from './routes/institutions.js';
 import universityRouter from './routes/university.js';
 import ratingsRouter from './routes/ratings.js';
+import publicRouter from './routes/public.js';
 import path from 'path';
 
 dotenv.config();
@@ -63,20 +64,20 @@ app.use(compression());
 const corsOptions = {
   origin: function (origin, callback) {
     console.log('CORS request from origin:', origin);
-    
+
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) {
       console.log('No origin provided, allowing request');
       return callback(null, true);
     }
-    
+
     // Allow localhost development
     const localhostRegex = /^https?:\/\/localhost(:\d+)?$/;
     if (localhostRegex.test(origin)) {
       console.log('Localhost origin allowed:', origin);
       return callback(null, true);
     }
-    
+
     // Allow dev tunnels and port forwarding
     const devTunnelRegex = /^https?:\/\/.*\.devtunnels\.ms$/;
     const portForwardRegex = /^https?:\/\/.*\.inc1\.devtunnels\.ms$/;
@@ -84,28 +85,28 @@ const corsOptions = {
       console.log('Dev tunnel origin allowed:', origin);
       return callback(null, true);
     }
-    
+
     // Allow specific localhost ports for development
     const allowedOrigins = [
       'http://localhost:3000',
-      'http://localhost:5173', 
+      'http://localhost:5173',
       'http://localhost:5174',
       'http://127.0.0.1:3000',
       'http://127.0.0.1:5173',
       'http://127.0.0.1:5174'
     ];
-    
+
     if (allowedOrigins.includes(origin)) {
       console.log('Allowed origin:', origin);
       return callback(null, true);
     }
-    
+
     // For development, allow all origins (less secure but works for dev)
     if (process.env.NODE_ENV === 'development' || !process.env.NODE_ENV) {
       console.log('Development mode - allowing all origins:', origin);
       return callback(null, true);
     }
-    
+
     console.log('Origin not allowed:', origin);
     callback(new Error('Not allowed by CORS'));
   },
@@ -145,6 +146,7 @@ app.use('/api/auth', authRoutes);
 
 // Public routes (no authentication required)
 app.use('/api/public/jobs', jobsRoutes); // Public job browsing
+app.use('/api/public', publicRouter); // Public profile viewing
 
 // Protected routes (authentication required)
 app.use('/api/analytics', authenticateToken, analyticsRoutes);

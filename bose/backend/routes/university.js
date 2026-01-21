@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import { requireUniversity } from '../middleware/roleMiddleware.js';
 import { Credential, VerificationRequest, User } from '../models/index.js';
 
+import fabricNetwork from '../services/fabricNetwork.js';
 const router = express.Router();
 
 // ==================== VALIDATION SCHEMAS ====================
@@ -108,6 +109,7 @@ router.post('/verification/approve/:requestId', requireUniversity, async (req, r
     // Mark verification request as approved
     vr.status = 'approved';
     vr.updatedAt = new Date();
+    vr.notes = 'Approved by university';
     await vr.save();
 
     // Update linked credential (if exists) and issue on blockchain
@@ -116,34 +118,32 @@ router.post('/verification/approve/:requestId', requireUniversity, async (req, r
     if (vr.credentialId) {
       credential = await Credential.findById(vr.credentialId._id || vr.credentialId);
       if (credential) {
-        try {
-          // Issue on blockchain first
-          const fabricNetwork = (await import('../services/fabricNetwork.js')).default;
-          fabricResult = await fabricNetwork.issueCredential(
-            credential._id.toString(), // credentialId
-            credential.userId.toString(), // studentId
-            hash // dataHash
-          );
+        // Update credential status in DB first
+        credential.status = 'verified';
+        credential.verifiedBy = req.user ? req.user._id : credential.verifiedBy;
+        credential.verifiedAt = new Date();
+        credential.dataHash = hash;
+        await credential.save();
 
-          // Update credential with blockchain info
-          credential.status = 'verified';
-          credential.verifiedBy = req.user ? req.user._id : credential.verifiedBy;
-          credential.verifiedAt = new Date();
-          credential.dataHash = hash;
-          credential.blockchainTxId = fabricResult.transactionId;
-          credential.blockchainTimestamp = fabricResult.timestamp;
-          credential.verificationNotes = credential.verificationNotes || '';
-          await credential.save();
-        } catch (fabricError) {
-          console.error('Warning: Blockchain issuance failed:', fabricError);
-          // Continue with DB update even if blockchain fails (we can retry later)
-          credential.status = 'verified';
-          credential.verifiedBy = req.user ? req.user._id : credential.verifiedBy;
-          credential.verifiedAt = new Date();
-          credential.dataHash = hash;
-          credential.blockchainTimestamp = timestamp;
-          credential.verificationNotes = 'Pending blockchain confirmation';
-          await credential.save();
+        try {
+          console.log(`Submitting credential ${credential._id} to blockchain...`);
+          await fabricNetwork.addCertificate(
+            req.user._id.toString(),
+            credential._id.toString(),
+            credential.userId.toString(),
+            credential.studentName || 'Unknown',
+            credential.title || credential.credentialTitle || 'Certificate',
+            req.user.organization || 'University',
+            'Pass',
+            new Date().toISOString(),
+            hash
+          );
+          console.log('Blockchain transaction successful');
+          fabricResult = { status: 'submitted' };
+        } catch (bcError) {
+          console.error('Blockchain submission failed:', bcError);
+          vr.notes = (vr.notes || '') + ' (Blockchain submission failed: ' + bcError.message + ')';
+          await vr.save();
         }
       }
     }

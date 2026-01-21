@@ -264,20 +264,29 @@ router.post('/issue', async (req, res) => {
     const credentialId = uuidv4();
     const { studentId, dataHash, credentialType, metadata } = value;
 
-    const result = await fabricNetwork.issueCredential(
+    // Default metadata values if not provided
+    const studentName = metadata?.studentName || 'Unknown Student';
+    const course = metadata?.course || credentialType || 'Certificate';
+    const grade = metadata?.grade || 'Pass';
+    const institution = req.user.organization || 'Org1';
+
+    await fabricNetwork.addCertificate(
+      req.user.userId || req.user.id || 'admin', // identity
       credentialId,
       studentId,
-      dataHash,
-      req.user.organization
+      studentName,
+      course,
+      institution,
+      grade,
+      new Date().toISOString(),
+      dataHash
     );
 
     res.json({
       success: true,
       credentialId,
-      transactionId: result.transactionId,
       message: 'Credential issued successfully',
-      endorsements: result.endorsements || [],
-      timestamp: result.timestamp
+      timestamp: new Date()
     });
   } catch (error) {
     console.error('Error issuing credential:', error);

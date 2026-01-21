@@ -33,7 +33,7 @@ router.get('/stats', async (req, res) => {
       byOrg: {},
       byMonth: {},
       recentActivity: allCredentials
-        .sort((a, b) => new Date(b.issuedAt) - new Date(a.issuedAt))
+        .sort((a, b) => new Date(b.issueDate || b.issuedAt) - new Date(a.issueDate || a.issuedAt))
         .slice(0, 10)
     };
 
@@ -44,7 +44,9 @@ router.get('/stats', async (req, res) => {
 
     // Group by month for trending
     allCredentials.forEach(cred => {
-      const month = new Date(cred.issuedAt).toISOString().slice(0, 7);
+      const dateStr = cred.issueDate || cred.issuedAt;
+      if (!dateStr) return;
+      const month = new Date(dateStr).toISOString().slice(0, 7);
       stats.byMonth[month] = (stats.byMonth[month] || 0) + 1;
     });
 
@@ -65,7 +67,7 @@ router.get('/trends', async (req, res) => {
       return res.status(403).json({ error: 'Insufficient permissions' });
     }
 
-    const allCredentials = await fabricNetwork.queryAllCredentials();
+    const allCredentials = await Credential.find({}).lean();
     
     if (!allCredentials) {
       return res.json({ success: true, trends: [] });

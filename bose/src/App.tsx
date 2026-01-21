@@ -22,6 +22,7 @@ import RedirectToRoleDashboard from './modules/common/pages/RedirectToRoleDashbo
 import Unauthorized from './modules/common/pages/Unauthorized';
 import CandidateDashboard from './modules/candidate/pages/CandidateDashboard';
 import CandidateProfile from './modules/candidate/pages/Profile';
+import PublicProfile from './modules/candidate/pages/PublicProfile';
 
 
 function App() {
@@ -32,6 +33,9 @@ function App() {
           <ToastProvider>
             <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
               <Routes>
+                {/* Public Profile Route - No Authentication Required */}
+                <Route path="/profile/:userId" element={<PublicProfile />} />
+
                 <Route path="/" element={<Landing />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/dashboard/student" element={

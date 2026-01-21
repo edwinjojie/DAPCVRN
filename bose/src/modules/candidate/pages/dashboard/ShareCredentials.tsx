@@ -1,17 +1,21 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Button } from '../../../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../../../components/ui/card';
 import { Input } from '../../../../components/ui/input';
 import { Share2, Copy, QrCode, Smartphone, Globe, Clock, ShieldCheck } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../../../../components/ui/dialog';
+import QRCodeModal from '../../components/QRCodeModal';
+import { useAuth } from '../../../../contexts/AuthContext';
 
 interface ShareCredentialsProps {
     userName: string;
 }
 
 export default function ShareCredentials({ userName }: ShareCredentialsProps) {
+    const { user } = useAuth();
     const [shareLink, setShareLink] = useState(`https://bose.edu/verify/${userName.toLowerCase().replace(/\s/g, '')}-12345`);
     const [modalOpen, setModalOpen] = useState(false);
+    const [qrModalOpen, setQrModalOpen] = useState(false);
     const [shareConfig, setShareConfig] = useState({ expiry: '24h', scope: 'full' });
 
     const copyToClipboard = () => {
@@ -43,7 +47,11 @@ export default function ShareCredentials({ userName }: ShareCredentialsProps) {
                             <Button onClick={() => setModalOpen(true)} className="bg-blue-600 hover:bg-blue-700 text-white shadow-md">
                                 <Share2 className="w-4 h-4 mr-2" /> Share Options
                             </Button>
-                            <Button variant="outline" className="text-slate-600">
+                            <Button
+                                variant="outline"
+                                className="text-slate-600"
+                                onClick={() => setQrModalOpen(true)}
+                            >
                                 <QrCode className="w-4 h-4 mr-2" /> QR Code
                             </Button>
                         </div>
@@ -132,6 +140,14 @@ export default function ShareCredentials({ userName }: ShareCredentialsProps) {
                     <Button className="w-full bg-blue-600 text-white" onClick={() => setModalOpen(false)}>Generate Link</Button>
                 </DialogContent>
             </Dialog>
+
+            {/* QR Code Modal */}
+            <QRCodeModal
+                isOpen={qrModalOpen}
+                onClose={() => setQrModalOpen(false)}
+                userId={user?.id || ''}
+                userName={userName}
+            />
         </div>
     );
 }
