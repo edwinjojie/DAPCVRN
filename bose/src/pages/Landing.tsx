@@ -5,7 +5,7 @@ import FeatureSection from './landing/FeatureSection';
 import HowItWorksSection from './landing/HowItWorksSection';
 import SDGSection from './landing/SDGSection';
 import TestimonialsSection from './landing/TestimonialsSection';
-import CTASection from './landing/CTASection';
+import CTASection from '../modules/landing/components/CTASection';
 
 export default function Landing() {
   return (

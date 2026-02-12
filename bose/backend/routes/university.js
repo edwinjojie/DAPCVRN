@@ -127,19 +127,25 @@ router.post('/verification/approve/:requestId', requireUniversity, async (req, r
 
         try {
           console.log(`Submitting credential ${credential._id} to blockchain...`);
+          // Using 'admin' identity for all blockchain writes (Option A)
           await fabricNetwork.addCertificate(
-            req.user._id.toString(),
+            'admin',  // Use admin identity for all blockchain writes
             credential._id.toString(),
             credential.userId.toString(),
             credential.studentName || 'Unknown',
             credential.title || credential.credentialTitle || 'Certificate',
             req.user.organization || 'University',
-            'Pass',
+            credential.grade || 'Pass',
             new Date().toISOString(),
             hash
           );
-          console.log('Blockchain transaction successful');
-          fabricResult = { status: 'submitted' };
+          console.log('✅ Blockchain transaction successful');
+
+          // Store blockchain transaction ID in credential
+          credential.blockchainTxId = hash;  // Using hash as tx identifier
+          await credential.save();
+
+          fabricResult = { status: 'submitted', txId: hash };
         } catch (bcError) {
           console.error('Blockchain submission failed:', bcError);
           vr.notes = (vr.notes || '') + ' (Blockchain submission failed: ' + bcError.message + ')';
@@ -303,11 +309,11 @@ router.get('/reports/analytics', requireUniversity, async (req, res) => {
     for (let i = 5; i >= 0; i--) {
       const start = new Date();
       start.setMonth(start.getMonth() - i, 1);
-      start.setHours(0,0,0,0);
+      start.setHours(0, 0, 0, 0);
       const end = new Date(start);
       end.setMonth(end.getMonth() + 1);
       const count = await Credential.countDocuments({ verifiedAt: { $gte: start, $lt: end } });
-      monthlyStats.push({ month: start.toISOString().slice(0,7), issued: count });
+      monthlyStats.push({ month: start.toISOString().slice(0, 7), issued: count });
     }
 
     // credential breakdown by type
@@ -347,7 +353,7 @@ router.get('/reports/analytics', requireUniversity, async (req, res) => {
     };
 
     const organizations = await Credential.aggregate([
-      { $group: { _id: '$organization', total: { $sum: 1 }, active: { $sum: { $cond: [{ $in: ['$status', ['issued','verified']] }, 1, 0] } }, revoked: { $sum: { $cond: [{ $eq: ['$status', 'revoked'] }, 1, 0] } } } },
+      { $group: { _id: '$organization', total: { $sum: 1 }, active: { $sum: { $cond: [{ $in: ['$status', ['issued', 'verified']] }, 1, 0] } }, revoked: { $sum: { $cond: [{ $eq: ['$status', 'revoked'] }, 1, 0] } } } },
     ]);
     const totalCredentialsCount = await Credential.countDocuments({});
 
@@ -357,7 +363,7 @@ router.get('/reports/analytics', requireUniversity, async (req, res) => {
       const sampleMonthly = [];
       for (let i = 5; i >= 0; i--) {
         const m = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        sampleMonthly.push({ month: m.toISOString().slice(0,7), issued: Math.floor(10 + Math.random() * 90) });
+        sampleMonthly.push({ month: m.toISOString().slice(0, 7), issued: Math.floor(10 + Math.random() * 90) });
       }
 
       const sampleBreakdown = [
