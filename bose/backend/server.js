@@ -34,6 +34,9 @@ import institutionsRouter from './routes/institutions.js';
 import universityRouter from './routes/university.js';
 import ratingsRouter from './routes/ratings.js';
 import publicRouter from './routes/public.js';
+// Blockchain routes
+import certificateRouter from './routes/certificate.js';
+import skillsRouter from './routes/skills.js';
 import path from 'path';
 
 dotenv.config();
@@ -166,6 +169,10 @@ app.use('/api/applications', authenticateToken, applicationsRouter);
 app.use('/api/university', authenticateToken, universityRouter);
 app.use('/api/ratings', authenticateToken, ratingsRouter);
 
+// ── Blockchain routes (no token required – identity passed in body/query) ──
+app.use('/api/certificate', certificateRouter);
+app.use('/api/skill', skillsRouter);
+
 // Serve uploaded files (credentials) - development only
 app.use('/uploads', express.static(path.join(process.cwd(), 'backend', 'uploads')));
 
@@ -177,9 +184,17 @@ app.get('/api/health', (req, res) => {
     status: 'healthy',
     timestamp: new Date().toISOString(),
     database: dbStatus,
+    blockchainRoutes: [
+      'POST /api/certificate/upload',
+      'POST /api/certificate/approve/:certId',
+      'POST /api/certificate/verify',
+      'GET  /api/certificate/:certId',
+      'POST /api/skill/add',
+      'GET  /api/skill/:skillId'
+    ],
     network: 'Hyperledger Fabric v2.5',
-    channel: process.env.FABRIC_CHANNEL_NAME,
-    chaincode: process.env.FABRIC_CHAINCODE_NAME
+    channel: process.env.FABRIC_CHANNEL || 'mychannel',
+    chaincode: process.env.FABRIC_CHAINCODE_ID || 'bose'
   });
 });
 
