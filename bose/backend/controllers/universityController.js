@@ -2,7 +2,7 @@ import Joi from 'joi';
 import { v4 as uuidv4 } from 'uuid';
 import { Credential } from '../models/index.js';
 import { generateCredentialHash } from '../utils/hashCredential.js';
-import fabricNetwork from '../services/fabricNetwork.js';
+import * as blockchainService from '../services/blockchainService.js';
 
 /**
  * Controller for University/Institution specific actions
@@ -64,23 +64,20 @@ export const issueCredential = async (req, res) => {
     let blockchainResult = { status: 'pending' };
     try {
       console.log(`Submitting direct issuance to blockchain for: ${value.credentialName}`);
-      await fabricNetwork.addCertificate(
-        'admin', // admin identity for write
+      const bcResponse = await blockchainService.addCertificate({
         credentialId,
-        value.studentId,
-        'Student Name TBD',
-        value.credentialName,
-        value.institution,
-        'Pass',
-        new Date(value.issueDate).toISOString(),
-        hash
-      );
+        studentId: value.studentId,
+        institution: value.institution,
+        credentialHash: hash,
+        issueDate: value.issueDate
+      });
+      
       console.log('✅ Blockchain transaction successful');
       
       // 6 Save transaction id
-      newCred.blockchainTxId = hash; // using hash as tx identifier as per convention
+      newCred.blockchainTxId = bcResponse.txId || hash; 
       await newCred.save();
-      blockchainResult = { status: 'submitted', txId: hash };
+      blockchainResult = { status: 'submitted', txId: bcResponse.txId || hash };
     } catch (bcError) {
       console.error('Blockchain submission failed for university issuance:', bcError);
       blockchainResult = { status: 'failed', error: bcError.message };
