@@ -89,6 +89,24 @@ const credentialSchema = new mongoose.Schema({
     },
     default: 'pending'
   },
+  // Phase 5 additions for University Module
+  studentId: {
+    type: String,
+    required: false // Optional for backward compatibility
+  },
+  credentialName: {
+    type: String,
+    required: false
+  },
+  credentialHash: {
+    type: String,
+    required: false
+  },
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: false
+  },
   blockchainTxId: {
     type: String,
     default: null,

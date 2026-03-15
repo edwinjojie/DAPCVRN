@@ -1,8 +1,10 @@
 import express from 'express';
 import Joi from 'joi';
 import crypto from 'crypto';
+import { v4 as uuidv4 } from 'uuid';
 import { requireUniversity } from '../middleware/roleMiddleware.js';
 import { Credential, VerificationRequest, User } from '../models/index.js';
+import * as universityController from '../controllers/universityController.js';
 
 import fabricNetwork from '../services/fabricNetwork.js';
 const router = express.Router();
@@ -437,6 +439,41 @@ router.get('/credentials/issued/:credentialId', requireUniversity, async (req, r
   } catch (err) {
     console.error('Error fetching credential:', err);
     res.status(500).json({ error: 'Failed to fetch credential' });
+  }
+});
+
+// ==================== NEW INSTITUTION ROUTES (Phase 3) ====================
+
+// 3.1 Issue Credential Endpoint
+// POST /api/university/issue-credential
+router.post('/issue-credential', requireUniversity, universityController.issueCredential);
+
+// 3.2 Get Issued Credentials
+// GET /api/university/credentials
+router.get('/credentials', requireUniversity, universityController.getUniversityCredentials);
+
+// 3.3 Get Credential Details
+// GET /api/university/credentials/:id
+router.get('/credentials/:id', requireUniversity, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const cred = await Credential.findById(id).lean();
+    if (!cred) return res.status(404).json({ error: 'Credential not found' });
+
+    // Fetch blockchain status if available
+    let blockchainStatus = 'Not on blockchain';
+    if (cred.blockchainTxId) {
+       blockchainStatus = 'Verified on blockchain';
+    }
+
+    res.json({ 
+      success: true, 
+      data: cred,
+      blockchainStatus
+    });
+  } catch (err) {
+    console.error('Error fetching credential details:', err);
+    res.status(500).json({ error: 'Failed to fetch credential details' });
   }
 });
 
