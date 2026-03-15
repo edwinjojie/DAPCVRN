@@ -2,8 +2,80 @@ import express from 'express';
 import User from '../models/User.js';
 import Credential from '../models/Credential.js';
 import Profile from '../models/Profile.js';
+import * as blockchainService from '../services/blockchainService.js';
 
 const router = express.Router();
+
+/**
+ * @route   GET /api/public/verify/:credentialId
+ * @desc    Verify a credential by ID (no authentication required)
+ * @access  Public
+ */
+router.get('/verify/:credentialId', async (req, res) => {
+    try {
+        const { credentialId } = req.params;
+
+        // 1 Fetch credential from MongoDB
+        // Try finding by _id first, then by custom credentialId
+        let cred = await Credential.findById(credentialId).lean();
+        if (!cred) {
+            cred = await Credential.findOne({ credentialId }).lean();
+        }
+
+        if (!cred) {
+            return res.status(404).json({ 
+                success: false, 
+                verified: false, 
+                message: 'Credential not found in local records' 
+            });
+        }
+
+        // 2 Query blockchain for authenticity
+        let blockchainData = null;
+        let isBlockchainVerified = false;
+
+        if (cred.blockchainTxId) {
+            try {
+                const bcResult = await blockchainService.verifyCredential(cred.credentialId || cred._id.toString());
+                if (bcResult && bcResult.success) {
+                    blockchainData = bcResult.certificate || bcResult.data;
+                    
+                    // 3 Compare hash
+                    const localHash = cred.dataHash || cred.credentialHash;
+                    const remoteHash = blockchainData.credentialHash || blockchainData.fileHash;
+                    
+                    if (localHash === remoteHash) {
+                        isBlockchainVerified = true;
+                    }
+                }
+            } catch (bcError) {
+                console.warn('Blockchain verification check failed:', bcError.message);
+            }
+        }
+
+        // 4 Return verification result
+        res.json({
+            success: true,
+            verified: isBlockchainVerified,
+            data: {
+                title: cred.title || cred.credentialName,
+                studentName: cred.studentName,
+                institution: cred.institution,
+                issueDate: cred.issueDate,
+                type: cred.type,
+                status: cred.status,
+                blockchainTxId: cred.blockchainTxId,
+                localHash: cred.dataHash || cred.credentialHash,
+                blockchainVerified: isBlockchainVerified,
+                blockchainData: blockchainData
+            }
+        });
+
+    } catch (err) {
+      console.error('Error in public verification:', err);
+      res.status(500).json({ success: false, error: 'Internal server error during verification' });
+    }
+});
 
 /**
  * @route   GET /api/public/profile/:userId

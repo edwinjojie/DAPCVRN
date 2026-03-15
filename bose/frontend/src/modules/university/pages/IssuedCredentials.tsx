@@ -1,76 +1,105 @@
 import React, { useState } from 'react';
-import { useIssuedCredentials } from '../hooks/useUniversityAPI';
+import { useIssuedCredentials } from '../hooks/useIssuedCredentials';
 import DataTable from '../components/DataTable';
+import CredentialDetailsModal from '../components/CredentialDetailsModal';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { format, subMonths } from 'date-fns';
-import { Filter } from 'lucide-react';
+import { Filter, Eye, Shield, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 
 export default function IssuedCredentials() {
-  const [page, setPage] = useState(1);
-  const [typeFilter, setTypeFilter] = useState<string>();
-  const [startDate, setStartDate] = useState<string>();
-  const [endDate, setEndDate] = useState<string>();
+  const [selectedCredential, setSelectedCredential] = useState<any | null>(null);
+  const [showDetails, setShowDetails] = useState(false);
+  
+  const { data, loading } = useIssuedCredentials();
 
-  const { data, loading, error } = useIssuedCredentials(page, 10, typeFilter, startDate, endDate);
-
-  const handleSetDateRange = (months: number) => {
-    const end = new Date();
-    const start = subMonths(end, months);
-    setStartDate(start.toISOString().split('T')[0]);
-    setEndDate(end.toISOString().split('T')[0]);
-    setPage(1);
+  const handleViewDetails = (credential: any) => {
+    setSelectedCredential(credential);
+    setShowDetails(true);
   };
 
-  const handleClearFilters = () => {
-    setTypeFilter(undefined);
-    setStartDate(undefined);
-    setEndDate(undefined);
-    setPage(1);
+  const getBlockchainStatusBadge = (txId: string | null) => {
+    if (txId) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 border border-green-200 shadow-sm">
+          <CheckCircle className="h-3.5 w-3.5" />
+          Verified on Blockchain
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800 border border-yellow-200 shadow-sm">
+        <Clock className="h-3.5 w-3.5" />
+        Pending Anchor
+      </span>
+    );
   };
 
   const columns = [
     {
       key: 'studentName',
       label: 'Student Name',
-      render: (value: string) => <span className="font-medium">{value}</span>
-    },
-    {
-      key: 'credentialType',
-      label: 'Credential Type',
-      render: (value: string) => (
-        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800">
-          {value}
-        </span>
+      render: (value: string, row: any) => (
+        <div className="flex flex-col">
+          <span className="font-semibold text-gray-900 dark:text-gray-100">{value || row.studentId}</span>
+          <span className="text-xs text-gray-500">{row.studentEmail}</span>
+        </div>
       )
     },
     {
-      key: 'issuedAt',
-      label: 'Issued Date',
+      key: 'title',
+      label: 'Credential',
+      render: (value: string, row: any) => (
+        <div className="flex flex-col">
+          <span className="font-medium text-gray-800 dark:text-gray-200">{value || row.credentialName}</span>
+          <span className="text-xs text-blue-600 dark:text-blue-400 font-medium uppercase tracking-tighter">
+            {row.type || 'Academic'}
+          </span>
+        </div>
+      )
+    },
+    {
+      key: 'issueDate',
+      label: 'Issue Date',
       render: (value: string) => {
         if (!value) return '—';
-        const d = new Date(value);
-        if (isNaN(d.getTime())) return '—';
-        return format(d, 'MMM dd, yyyy HH:mm');
+        try {
+          return format(new Date(value), 'MMM dd, yyyy');
+        } catch (e) {
+          return '—';
+        }
       }
     },
     {
-      key: 'hash',
-      label: 'Hash',
-      render: (value: string) => (
-        <code className="text-xs bg-gray-100 px-2 py-1 rounded font-mono">
-          {value.substring(0, 16)}...
-        </code>
-      )
+      key: 'blockchainTxId',
+      label: 'Blockchain Status',
+      render: (value: string) => getBlockchainStatusBadge(value)
     },
     {
       key: 'status',
-      label: 'Status',
+      label: 'System Status',
       render: (value: string) => (
-        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${
+          value === 'verified' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
+        }`}>
           {value}
         </span>
+      )
+    },
+    {
+      key: '_id',
+      label: 'Actions',
+      render: (id: string, row: any) => (
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => handleViewDetails(row)}
+          className="gap-2 border-blue-200 hover:border-blue-400 hover:bg-blue-50 text-blue-600"
+        >
+          <Eye className="h-4 w-4" />
+          Details
+        </Button>
       )
     }
   ];
@@ -78,135 +107,41 @@ export default function IssuedCredentials() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Issued Credentials</h1>
-        <p className="text-gray-500 mt-1">View all verified and issued credentials</p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Issued Credentials</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Manage and track all certificates issued by your institution.</p>
+        </div>
+        <div className="flex gap-3">
+          <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800 shadow-sm">
+            <Shield className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <span className="text-sm font-semibold text-blue-800 dark:text-blue-300">
+              {data?.length || 0} Total Records
+            </span>
+          </div>
+        </div>
       </div>
 
-      {/* Filters */}
-      <Card>
+      <Card className="border-none shadow-xl shadow-blue-500/5 bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg">
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Filter className="h-5 w-5 text-gray-400" />
-              <h3 className="font-medium text-gray-900">Filters</h3>
-            </div>
-            {(typeFilter || startDate || endDate) && (
-              <Button variant="ghost" size="sm" onClick={handleClearFilters}>
-                Clear Filters
-              </Button>
-            )}
-          </div>
+          <CardTitle>Credential History</CardTitle>
+          <CardDescription>All issued records anchored to the distributed ledger.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Type Filter */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Credential Type
-            </label>
-            <div className="flex gap-2 flex-wrap">
-              <Button
-                variant={!typeFilter ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => {
-                  setTypeFilter(undefined);
-                  setPage(1);
-                }}
-              >
-                All Types
-              </Button>
-              {['Degree', 'Certificate', 'License', 'Diploma'].map((type) => (
-                <Button
-                  key={type}
-                  variant={typeFilter === type ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => {
-                    setTypeFilter(type);
-                    setPage(1);
-                  }}
-                >
-                  {type}
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          {/* Date Range Filter */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Date Range
-            </label>
-            <div className="flex gap-2 flex-wrap mb-3">
-              <Button
-                variant={!startDate && !endDate ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => handleClearFilters()}
-              >
-                All Dates
-              </Button>
-              <Button
-                variant={startDate ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => handleSetDateRange(1)}
-              >
-                Last Month
-              </Button>
-              <Button
-                variant={startDate ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => handleSetDateRange(3)}
-              >
-                Last 3 Months
-              </Button>
-              <Button
-                variant={startDate ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => handleSetDateRange(6)}
-              >
-                Last 6 Months
-              </Button>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs text-gray-600">From</label>
-                <Input
-                  type="date"
-                  value={startDate || ''}
-                  onChange={(e) => {
-                    setStartDate(e.target.value || undefined);
-                    setPage(1);
-                  }}
-                />
-              </div>
-              <div>
-                <label className="text-xs text-gray-600">To</label>
-                <Input
-                  type="date"
-                  value={endDate || ''}
-                  onChange={(e) => {
-                    setEndDate(e.target.value || undefined);
-                    setPage(1);
-                  }}
-                />
-              </div>
-            </div>
-          </div>
+        <CardContent>
+          <DataTable 
+            columns={columns} 
+            data={data || []} 
+            loading={loading}
+          />
         </CardContent>
       </Card>
 
-      {/* Data Table */}
-      <DataTable
-        columns={columns}
-        data={data?.data || []}
-        loading={loading}
-    error={error || undefined}
-        pagination={{
-          page,
-          limit: 10,
-          total: data?.pagination?.total
-        }}
-        onPageChange={setPage}
-      />
+      {showDetails && selectedCredential && (
+        <CredentialDetailsModal 
+          credential={selectedCredential} 
+          onClose={() => setShowDetails(false)} 
+        />
+      )}
     </div>
   );
 }
