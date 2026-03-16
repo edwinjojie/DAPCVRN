@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import api from "../../../lib/api";
+import * as universityService from '../services/universityService';
 
 export function useIssuedCredentials() {
   const [data, setData] = useState<any[]>([]);
@@ -9,8 +9,8 @@ export function useIssuedCredentials() {
     (async () => {
       setLoading(true);
       try {
-        const res = await api.get("/api/university/credentials/issued");
-        setData(res.data.data || res.data); // Handle potential pagination structure
+        const res = await universityService.fetchIssuedCredentials();
+        setData(res.data.data || res.data || []); 
       } catch (err) {
         console.error("Failed to fetch issued credentials", err);
       } finally {

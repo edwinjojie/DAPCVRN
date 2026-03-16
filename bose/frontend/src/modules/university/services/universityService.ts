@@ -150,3 +150,16 @@ export const getAnalytics = async (userRole?: string) => {
   const response = await api.get(`${basePath}/reports/analytics`);
   return response.data;
 };
+
+// ===== INSTITUTION / UNIVERSITY DIRECT ISSUANCE (Phase 2) =====
+export const issueCredential = async (data: any) => { 
+  return api.post("/api/university/issue-credential", data); 
+}; 
+
+export const fetchIssuedCredentials = async () => { 
+  return api.get("/api/university/credentials"); 
+}; 
+
+export const approveVerification = async (id: string) => { 
+  return api.post(`/api/university/verify/${id}/approve`); 
+};

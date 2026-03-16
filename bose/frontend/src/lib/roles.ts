@@ -17,10 +17,10 @@ export const ROLE_DASHBOARD_PATH: Record<RoleKey, string> = {
   employee: '/dashboard/student',
   recruiter: '/dashboard/employer',
   employer: '/dashboard/employer',
-  institution: '/dashboard/institution',
+  institution: '/university',
   university: '/university',
-  verifier: '/dashboard/institution',
-  issuer: '/dashboard/institution',
+  verifier: '/university',
+  issuer: '/university',
   admin: '/dashboard/admin',
   auditor: '/dashboard/auditor',
 };
@@ -68,29 +68,28 @@ export const SIDEBAR_LINKS: Record<RoleKey, SidebarLink[]> = {
     { name: 'Messages', href: '/dashboard/employer/messages' },
   ],
 
-  // Institution / Verifier / Issuer
+  // Institution / Verifier / Issuer / University (all consolidated to /university)
   institution: [
-    { name: 'Dashboard', href: '/dashboard/institution' },
-    { name: 'Verifications', href: '/dashboard/institution/verifications' },
-    { name: 'Issued Credentials', href: '/dashboard/institution/issued' },
-    { name: 'Bulk Upload', href: '/dashboard/institution/bulk' },
-    { name: 'Analytics', href: '/dashboard/institution/analytics' },
+    { name: 'Dashboard', href: '/university' },
+    { name: 'Verifications', href: '/university/verification-requests' },
+    { name: 'Issue Credential', href: '/university/issue-credential' },
+    { name: 'Issued Credentials', href: '/university/issued-credentials' },
+    { name: 'Analytics', href: '/university/analytics' },
   ],
   verifier: [
-    { name: 'Dashboard', href: '/dashboard/institution' },
-    { name: 'Verifications', href: '/dashboard/institution/verifications' },
-    { name: 'Issued Credentials', href: '/dashboard/institution/issued' },
+    { name: 'Dashboard', href: '/university' },
+    { name: 'Verifications', href: '/university/verification-requests' },
+    { name: 'Issued Credentials', href: '/university/issued-credentials' },
   ],
   issuer: [
-    { name: 'Dashboard', href: '/dashboard/institution' },
-    { name: 'Issue Creds', href: '/dashboard/institution/issue' },
-    { name: 'Issued Credentials', href: '/dashboard/institution/issued' },
+    { name: 'Dashboard', href: '/university' },
+    { name: 'Issue Credential', href: '/university/issue-credential' },
+    { name: 'Issued Credentials', href: '/university/issued-credentials' },
   ],
-
-  // University (alias for institution UI routes)
   university: [
     { name: 'Dashboard', href: '/university' },
     { name: 'Verifications', href: '/university/verification-requests' },
+    { name: 'Issue Credential', href: '/university/issue-credential' },
     { name: 'Issued Credentials', href: '/university/issued-credentials' },
     { name: 'Students', href: '/university/students' },
     { name: 'Analytics', href: '/university/analytics' },
