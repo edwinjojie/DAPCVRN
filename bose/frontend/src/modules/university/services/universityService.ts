@@ -1,16 +1,19 @@
 import api from '../../../lib/api';
 
-// Helper function to get the appropriate API base path based on role
+// Helper function to get the appropriate API base path based on role.
+// NOTE: Do NOT include '/api' here — the axios client in lib/api.ts
+// already has baseURL = 'http://localhost:3001/api', so adding /api again
+// would result in double /api/ paths (e.g. /api/api/university/...).
 export const getApiBasePath = (role: string) => {
   const universityRoles = ['university'];
   const institutionRoles = ['institution', 'verifier', 'issuer'];
 
   if (universityRoles.includes(role)) {
-    return '/api/university';
+    return '/university';
   } else if (institutionRoles.includes(role)) {
-    return '/api/institutions';
+    return '/institutions';
   } else {
-    return '/api/university'; // fallback
+    return '/university'; // fallback
   }
 };
 
@@ -152,14 +155,14 @@ export const getAnalytics = async (userRole?: string) => {
 };
 
 // ===== INSTITUTION / UNIVERSITY DIRECT ISSUANCE (Phase 2) =====
-export const issueCredential = async (data: any) => { 
-  return api.post("/api/university/issue-credential", data); 
-}; 
+export const issueCredential = async (data: any) => {
+  return api.post("/university/issue-credential", data);
+};
 
-export const fetchIssuedCredentials = async () => { 
-  return api.get("/api/university/credentials"); 
-}; 
+export const fetchIssuedCredentials = async () => {
+  return api.get("/university/credentials");
+};
 
-export const approveVerification = async (id: string) => { 
-  return api.post(`/api/university/verify/${id}/approve`); 
+export const approveVerification = async (id: string) => {
+  return api.post(`/university/verify/${id}/approve`);
 };

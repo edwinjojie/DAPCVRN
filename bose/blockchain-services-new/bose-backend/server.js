@@ -240,7 +240,7 @@ app.use('/api', require('./routes/index'));
 // Health check (optional but useful)
 app.get('/health', (_, res) => res.json({ status: 'OK' }));
 
-const PORT = process.env.PORT || 3002;
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
     console.log(`BOSE Backend running on port ${PORT}`);
 });

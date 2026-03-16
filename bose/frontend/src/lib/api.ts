@@ -1,42 +1,29 @@
 import axios from 'axios';
 
+const BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3001/api',
+  baseURL: BASE,
   withCredentials: false,
 });
 
-// Load persisted token on startup
-const persisted = localStorage.getItem('bose_token');
-if (persisted) {
-  api.defaults.headers.common = api.defaults.headers.common || {} as any;
-  (api.defaults.headers as any).common['Authorization'] = `Bearer ${persisted}`;
-}
-
-// Attach token per request (in case it changes during session)
+// Attach user-identity headers from localStorage on every request.
+// These replace the former JWT Authorization header.
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('bose_token');
-  if (token) {
-    config.headers = config.headers || {};
-    (config.headers as any).Authorization = `Bearer ${token}`;
+  const raw = localStorage.getItem('bose_user');
+  if (raw) {
+    try {
+      const user = JSON.parse(raw);
+      config.headers = config.headers || {};
+      if (user.id)           config.headers['x-user-id']    = user.id;
+      if (user.role)         config.headers['x-user-role']  = user.role;
+      if (user.email)        config.headers['x-user-email'] = user.email;
+      if (user.organization) config.headers['x-user-org']   = user.organization;
+    } catch {
+      // ignore malformed JSON
+    }
   }
   return config;
 });
 
-// Auto-logout on 401
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error?.response?.status === 401) {
-      localStorage.removeItem('bose_token');
-      if ((api.defaults.headers as any)?.common) {
-        delete (api.defaults.headers as any).common['Authorization'];
-      }
-      window.location.href = '/login';
-    }
-    return Promise.reject(error);
-  }
-);
-
 export default api;
-
-

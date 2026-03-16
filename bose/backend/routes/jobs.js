@@ -132,7 +132,9 @@ router.delete('/:id', async (req, res) => {
 });
 
 // Public endpoint for browsing jobs (no auth required)
-router.get('/public', async (req, res) => {
+// GET /  → used when mounted at /api/public/jobs (root request)
+// GET /public → legacy alias kept for compatibility
+const publicJobsHandler = async (req, res) => {
   try {
     const { status = 'active', limit = 50 } = req.query;
 
@@ -154,7 +156,10 @@ router.get('/public', async (req, res) => {
     console.error('Error fetching public jobs:', error);
     res.status(500).json({ error: 'Failed to fetch jobs' });
   }
-});
+};
+
+router.get('/', publicJobsHandler);       // GET /api/public/jobs
+router.get('/public', publicJobsHandler); // GET /api/public/jobs/public (legacy alias)
 
 export default router;
 

@@ -115,7 +115,7 @@ const corsOptions = {
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'x-user-id', 'x-user-role', 'x-user-email', 'x-user-org'],
   optionsSuccessStatus: 200 // For legacy browser support
 };
 
@@ -147,11 +147,11 @@ setupWebSocket(wss);
 // Routes
 app.use('/api/auth', authRoutes);
 
-// Public routes (no authentication required)
-app.use('/api/public/jobs', jobsRoutes); // Public job browsing
-app.use('/api/public', publicRouter); // Public profile viewing
+// Public routes
+app.use('/api/public/jobs', jobsRoutes); // Public job browsing → GET /api/public/jobs
+app.use('/api/public', publicRouter);    // Public profile viewing
 
-// Protected routes (authentication required)
+// All routes – open (no JWT required; user identity passed via x-user-* headers)
 app.use('/api/analytics', authenticateToken, analyticsRoutes);
 app.use('/api/events', authenticateToken, eventRoutes);
 app.use('/api/recruiter', authenticateToken, recruiterRoutes);
@@ -169,9 +169,10 @@ app.use('/api/applications', authenticateToken, applicationsRouter);
 app.use('/api/university', authenticateToken, universityRouter);
 app.use('/api/ratings', authenticateToken, ratingsRouter);
 
-// ── Blockchain routes (no token required – identity passed in body/query) ──
+// Blockchain routes
 app.use('/api/certificate', certificateRouter);
 app.use('/api/skill', skillsRouter);
+
 
 // Serve uploaded files (credentials) - development only
 app.use('/uploads', express.static(path.join(process.cwd(), 'backend', 'uploads')));
@@ -222,7 +223,7 @@ async function startServer() {
     server.listen(PORT, () => {
       console.log(`🚀 BOSE Backend Server running on port ${PORT}`);
       console.log(`📊 WebSocket Server ready for real-time events`);
-      console.log(`🔗 Hyperledger Fabric Network: ${process.env.FABRIC_CHANNEL_NAME}`);
+      console.log(`🔗 Hyperledger Fabric Network: ${process.env.FABRIC_CHANNEL}`);
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error);

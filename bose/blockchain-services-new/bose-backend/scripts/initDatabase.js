@@ -74,7 +74,7 @@ async function initDatabase() {
         console.log('\n📝 Next Steps:');
         console.log('  1. Start your backend: npm start');
         console.log('  2. The models will automatically create documents when you use the API');
-        console.log('  3. Check the API docs at: http://localhost:3002/api-docs\n');
+        console.log('  3. Check the API docs at: http://localhost:3001/api-docs\n');
 
     } catch (error) {
         console.error('❌ Database initialization failed:', error);

@@ -122,7 +122,7 @@ router.post('/verification/approve/:requestId', requireUniversity, async (req, r
       if (credential) {
         // Update credential status in DB first
         credential.status = 'verified';
-        credential.verifiedBy = req.user ? req.user._id : credential.verifiedBy;
+        credential.verifiedBy = req.user ? (req.user.userId || req.user._id) : credential.verifiedBy;
         credential.verifiedAt = new Date();
         credential.dataHash = hash;
         await credential.save();
@@ -215,8 +215,8 @@ router.get('/credentials/issued', requireUniversity, async (req, res) => {
     // filter to this university's issued credentials
     if (req.user && req.user.organization) {
       query.organization = req.user.organization;
-    } else if (req.user && req.user._id) {
-      query.issuerId = req.user._id;
+    } else if (req.user && (req.user.userId || req.user._id)) {
+      query.issuerId = req.user.userId || req.user._id;
     }
 
     if (type) query.type = type;
