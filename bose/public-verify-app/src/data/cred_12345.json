@@ -1,0 +1,52 @@
+{
+  "id": "cred_12345",
+  "candidate": {
+    "name": "Alice Johnson",
+    "role": "Full Stack Engineer",
+    "email": "alice.johnson@student.edu",
+    "phone": "+1 234 567 8901",
+    "location": "San Francisco, CA",
+    "photoUrl": "https://i.pravatar.cc/150?u=alice",
+    "bio": "A highly motivated software engineer with a strong foundation in computational theory and a passion for building scalable web applications. Specializing in React, Node.js, and Distributed Systems.",
+    "links": [
+      { "label": "GitHub", "url": "https://github.com" },
+      { "label": "LinkedIn", "url": "https://linkedin.com" }
+    ]
+  },
+  "skills": [
+    { "name": "React", "level": "Expert" },
+    { "name": "Node.js", "level": "Advanced" },
+    { "name": "TypeScript", "level": "Advanced" },
+    { "name": "Hyperledger Fabric", "level": "Intermediate" }
+  ],
+  "experience": [
+    {
+      "company": "Tech Innovations Inc.",
+      "role": "Frontend Intern",
+      "duration": "June 2023 - Aug 2023",
+      "description": "Developed responsive UI components using React and Tailwind CSS for a high-traffic e-commerce platform."
+    }
+  ],
+  "education": [
+    {
+      "institution": "Massachusetts Institute of Technology",
+      "degree": "Bachelor of Science in Computer Science",
+      "year": "2024",
+      "verified": true,
+      "verificationData": {
+        "status": "verified",
+        "verifiedBy": "MIT Registrar",
+        "blockchainTxId": "0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b"
+      }
+    }
+  ],
+  "otherVerifiedCredentials": [
+    {
+      "title": "Advanced React Certification",
+      "issuer": "Meta via Coursera",
+      "date": "Dec 2023",
+      "status": "verified",
+      "blockchainTxId": "0x7d8e9f..."
+    }
+  ]
+}

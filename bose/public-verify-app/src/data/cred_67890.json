@@ -1,0 +1,52 @@
+{
+  "id": "cred_67890",
+  "candidate": {
+    "name": "Bob Smith",
+    "role": "DevOps Engineer",
+    "email": "bob.smith@student.edu",
+    "phone": "+1 987 654 3210",
+    "location": "Austin, TX",
+    "photoUrl": "https://i.pravatar.cc/150?u=bob",
+    "bio": "Expert in cloud infrastructure and container orchestration. Passionate about automating software delivery pipelines and building resilient cloud-native architectures.",
+    "links": [
+      { "label": "Twitter", "url": "https://twitter.com" },
+      { "label": "Portfolio", "url": "https://bob-smith.dev" }
+    ]
+  },
+  "skills": [
+    { "name": "Kubernetes", "level": "Expert" },
+    { "name": "Docker", "level": "Expert" },
+    { "name": "Terraform", "level": "Advanced" },
+    { "name": "AWS", "level": "Advanced" }
+  ],
+  "experience": [
+    {
+      "company": "CloudFlow Systems",
+      "role": "DevOps Intern",
+      "duration": "Jan 2024 - Present",
+      "description": "Managing Kubernetes clusters and optimizing CI/CD workflows for microservices architecture."
+    }
+  ],
+  "education": [
+    {
+      "institution": "University of Texas at Austin",
+      "degree": "B.S. in Computer Engineering",
+      "year": "2024",
+      "verified": false,
+      "verificationData": {
+        "status": "pending",
+        "verifiedBy": null,
+        "blockchainTxId": null
+      }
+    }
+  ],
+  "otherVerifiedCredentials": [
+    {
+      "title": "Certified Kubernetes Administrator (CKA)",
+      "issuer": "CNCF",
+      "date": "July 2024",
+      "status": "pending",
+      "blockchainTxId": null
+    }
+  ]
+}
