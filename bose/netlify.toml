@@ -1,5 +1,4 @@
 [build]
-  # Change this to match your actual folder path in GitHub
   base = "bose/public-verify-app"
   command = "npm install && npm run build"
   publish = "dist"
