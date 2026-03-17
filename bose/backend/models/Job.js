@@ -26,6 +26,11 @@ const jobSchema = new mongoose.Schema({
     ref: 'User',
     required: [true, 'Employer ID is required']
   },
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: false // Adding for recruiter flow
+  },
   description: {
     type: String,
     required: [true, 'Job description is required']

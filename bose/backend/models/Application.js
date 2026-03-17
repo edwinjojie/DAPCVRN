@@ -12,6 +12,11 @@ const applicationSchema = new mongoose.Schema({
     ref: 'Job',
     required: [true, 'Job ID is required']
   },
+  recruiterId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: false
+  },
   candidateId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -29,11 +34,7 @@ const applicationSchema = new mongoose.Schema({
     trim: true
   },
   coverLetter: String,
-  resume: {
-    filename: String,
-    url: String,
-    uploadedAt: Date
-  },
+  resume: String,
   attachedCredentials: [{
     credentialId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -45,8 +46,12 @@ const applicationSchema = new mongoose.Schema({
   status: {
     type: String,
     required: true,
-    enum: ['submitted', 'under-review', 'shortlisted', 'interviewed', 'offered', 'accepted', 'rejected', 'withdrawn'],
-    default: 'submitted'
+    enum: ['submitted', 'applied', 'under-review', 'shortlisted', 'interviewed', 'offered', 'accepted', 'rejected', 'withdrawn', 'hired'],
+    default: 'applied'
+  },
+  appliedAt: {
+    type: Date,
+    default: Date.now
   },
   timeline: [{
     status: String,

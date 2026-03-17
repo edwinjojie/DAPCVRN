@@ -28,13 +28,17 @@ export function useRecruiterSummary() {
       setLoading(true);
       setError(null);
       try {
-        const [summaryRes, activityRes] = await Promise.all([
-          api.get(`${baseUrl}/api/recruiter/summary`),
-          api.get(`${baseUrl}/api/recruiter/activity`)
-        ]);
+        const res = await api.get(`${baseUrl}/api/recruiter/dashboard`);
         if (!isMounted) return;
-        setSummary(summaryRes.data);
-        setActivity(activityRes.data);
+        setSummary(res.data.stats);
+        
+        // Map recent activity from applications
+        const mappedActivity = res.data.recentActivity.map((app: any) => ({
+          id: app._id,
+          message: `${app.candidateName} applied to ${app.jobId?.title || 'a Job'}`,
+          time: new Date(app.appliedAt || app.createdAt).toISOString()
+        }));
+        setActivity(mappedActivity);
       } catch (err: any) {
         if (!isMounted) return;
         setError(err?.response?.data?.error || 'Failed to load dashboard');

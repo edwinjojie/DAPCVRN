@@ -42,6 +42,19 @@ const userSchema = new mongoose.Schema({
     ref: 'Profile',
     default: null
   },
+  skills: {
+    type: [String],
+    default: []
+  },
+  location: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  verifiedCredentials: {
+    type: Boolean,
+    default: false
+  },
   status: {
     type: String,
     enum: ['active', 'banned', 'pending'],

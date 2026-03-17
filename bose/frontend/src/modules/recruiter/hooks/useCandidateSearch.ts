@@ -22,8 +22,20 @@ export function useCandidateSearch(filters: Record<string, any>) {
       setError(null);
       try {
         const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-        const res = await api.get(`${baseUrl}/api/candidates/search`, { params: filters });
-        setData(res.data || []);
+        const res = await api.get(`${baseUrl}/api/recruiter/candidates`, { params: filters });
+        
+        // Map User model to Candidate interface
+        const mappedCandidates = (res.data.candidates || res.data || []).map((user: any) => ({
+          id: user._id || user.id,
+          name: user.name,
+          skills: user.skills || [],
+          experience: user.experience || 0, // Placeholder
+          location: user.location || 'Unknown',
+          verified: user.verifiedCredentials || false,
+          rating: user.rating || 0 // Placeholder
+        }));
+        
+        setData(mappedCandidates);
       } catch (err: any) {
         setError(err?.response?.data?.error || err?.message || 'Failed to search candidates');
       } finally {

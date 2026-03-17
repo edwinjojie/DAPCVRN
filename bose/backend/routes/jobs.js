@@ -1,5 +1,5 @@
 import express from 'express';
-import { Job } from '../models/index.js';
+import { Job, Application, User, Notification } from '../models/index.js';
 
 const router = express.Router();
 
@@ -157,6 +157,68 @@ const publicJobsHandler = async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch jobs' });
   }
 };
+
+// Apply to Job (Student -> Recruiter Flow)
+router.post('/:id/apply', async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id || req.user?._id;
+    const { id: jobId } = req.params;
+    const { coverLetter, resume } = req.body;
+
+    // Check if job exists
+    const job = await Job.findById(jobId).lean();
+    if (!job) {
+      return res.status(404).json({ error: 'Job not found' });
+    }
+
+    // Check if user exists
+    const user = await User.findById(userId).lean();
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Check if already applied
+    const existingApplication = await Application.findOne({ jobId, candidateId: userId });
+    if (existingApplication) {
+      return res.status(400).json({ error: 'You have already applied for this job' });
+    }
+
+    // Create Application
+    const application = await Application.create({
+      applicationId: `APP-${Date.now()}`,
+      jobId: jobId,
+      candidateId: userId,
+      candidateName: user.name,
+      candidateEmail: user.email,
+      recruiterId: job.employerId || job.createdBy,
+      coverLetter: coverLetter || '',
+      resume: resume || '', // Client should send resume string here, or handle uploads in another endpoint
+      status: 'applied',
+      appliedAt: new Date(),
+    });
+
+    // Phase 3 - send notification to recruiter
+    if (application.recruiterId) {
+      await Notification.createNotification({
+        userId: application.recruiterId,
+        type: 'application_received',
+        title: 'New Candidate Application',
+        message: `${user.name} applied for ${job.title}`,
+        relatedApplication: application._id,
+        relatedJob: jobId,
+        relatedUser: userId
+      });
+    }
+
+    res.status(201).json({
+      success: true,
+      application
+    });
+  } catch (error) {
+    console.error('Error applying to job:', error);
+    res.status(500).json({ error: error.message || 'Failed to apply to job' });
+  }
+});
 
 router.get('/', publicJobsHandler);       // GET /api/public/jobs
 router.get('/public', publicJobsHandler); // GET /api/public/jobs/public (legacy alias)

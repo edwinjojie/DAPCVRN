@@ -20,8 +20,12 @@ export function useJobs() {
   };
 
   const apply = async (jobId: string, title: string) => {
-    await api.post(`/applications/apply/${jobId}`, { title });
-    toast({ title: "Applied successfully!", variant: "success" });
+    try {
+      await api.post(`/jobs/${jobId}/apply`, { coverLetter: `Applying for ${title}` });
+      toast({ title: "Applied successfully!", variant: "success" });
+    } catch (e: any) {
+      toast({ title: "Application Failed", description: e?.response?.data?.error || "Unknown error", variant: "error" });
+    }
   };
 
   useEffect(() => { reload(); }, []);
