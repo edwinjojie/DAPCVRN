@@ -6,6 +6,7 @@ import multer from 'multer';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
+import mongoose from 'mongoose';
 import { Credential } from '../models/index.js';
 import User from '../models/User.js';
 import VerificationRequest from '../models/VerificationRequest.js';
@@ -272,6 +273,7 @@ router.post('/issue', async (req, res) => {
 
     await fabricNetwork.addCertificate(
       req.user.userId || req.user.id || 'admin', // identity
+      ['employer', 'auditor'].includes(req.user.role) ? 'institution' : 'admin', // Role (assuming employers/auditors act as institutions)
       credentialId,
       studentId,
       studentName,
@@ -484,7 +486,7 @@ router.post('/requests/:id/approve', async (req, res) => {
 
     // Update credential as verified
     cred.status = 'verified';
-    cred.verifiedBy = userId;
+    cred.verifiedBy = (() => { try { return new mongoose.Types.ObjectId(userId); } catch { return userId; } })();
     cred.verifiedAt = new Date();
     await cred.save();
 

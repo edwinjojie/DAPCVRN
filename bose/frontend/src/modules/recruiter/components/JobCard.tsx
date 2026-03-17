@@ -1,13 +1,14 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
-import { Calendar, Edit, Trash2 } from 'lucide-react';
+import { Calendar, Edit, Trash2, Sparkles } from 'lucide-react';
 import type { Job } from '../hooks/useJobs';
 
 interface JobCardProps {
   job: Job;
   onEdit: (job: Job) => void;
   onDelete: (job: Job) => void;
+  onAISuggest?: (job: Job) => void;
 }
 
 const statusConfig: Record<Job['status'], { bg: string; text: string; border: string; label: string }> = {
@@ -31,7 +32,7 @@ const statusConfig: Record<Job['status'], { bg: string; text: string; border: st
   },
 };
 
-export default function JobCard({ job, onEdit, onDelete }: JobCardProps) {
+export default function JobCard({ job, onEdit, onDelete, onAISuggest }: JobCardProps) {
   const status = statusConfig[job.status] || statusConfig.draft;
 
   return (
@@ -57,6 +58,16 @@ export default function JobCard({ job, onEdit, onDelete }: JobCardProps) {
           })}</span>
         </div>
         <div className="flex gap-2 pt-2">
+          {onAISuggest && (
+            <Button
+              size="sm"
+              onClick={() => onAISuggest(job)}
+              className="flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-md"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              AI
+            </Button>
+          )}
           <Button
             size="sm"
             onClick={() => onEdit(job)}

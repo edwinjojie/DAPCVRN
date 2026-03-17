@@ -1,6 +1,7 @@
 import express from 'express';
 import Joi from 'joi';
 import crypto from 'crypto';
+import mongoose from 'mongoose';
 import { v4 as uuidv4 } from 'uuid';
 import { requireUniversity } from '../middleware/roleMiddleware.js';
 import { Credential, VerificationRequest, User } from '../models/index.js';
@@ -122,7 +123,7 @@ router.post('/verification/approve/:requestId', requireUniversity, async (req, r
       if (credential) {
         // Update credential status in DB first
         credential.status = 'verified';
-        credential.verifiedBy = req.user ? (req.user.userId || req.user._id) : credential.verifiedBy;
+        credential.verifiedBy = req.user ? (() => { try { return new mongoose.Types.ObjectId(req.user.userId || req.user._id); } catch { return credential.verifiedBy; } })() : credential.verifiedBy;
         credential.verifiedAt = new Date();
         credential.dataHash = hash;
         await credential.save();
@@ -132,6 +133,7 @@ router.post('/verification/approve/:requestId', requireUniversity, async (req, r
           // Using 'admin' identity for all blockchain writes (Option A)
           await fabricNetwork.addCertificate(
             'admin',  // Use admin identity for all blockchain writes
+            'admin',  // Role
             credential._id.toString(),
             credential.userId.toString(),
             credential.studentName || 'Unknown',

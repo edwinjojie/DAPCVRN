@@ -1,9 +1,9 @@
 import Joi from 'joi';
 import { v4 as uuidv4 } from 'uuid';
 import mongoose from 'mongoose';
-import { Credential, User } from '../models/index.js';
+import { Credential, User, VerificationRequest } from '../models/index.js';
 import { generateCredentialHash } from '../utils/hashCredential.js';
-import * as blockchainService from '../services/blockchainService.js';
+import { addCertificate } from '../services/fabricNetwork.js';
 
 /**
  * Safely convert a string to ObjectId. Returns null on failure.
@@ -104,19 +104,58 @@ export const issueCredential = async (req, res) => {
 
     await newCred.save();
 
+    // ─── 5b. Create VerificationRequest so it appears on university dashboard ─
+    try {
+      const vr = new VerificationRequest({
+        credentialId: newCred._id,
+        requesterId:  studentObjectId,
+        verifierId:   resolvedIssuerId,
+        status:       'pending',
+        createdAt:    new Date(),
+        updatedAt:    new Date(),
+      });
+      await vr.save();
+      console.log(`✅ VerificationRequest created: ${vr._id} for credential ${newCred._id}`);
+    } catch (vrError) {
+      console.warn('⚠️ Failed to create VerificationRequest:', vrError.message);
+    }
+
     // ─── 6. Best-effort blockchain submission ─────────────────────────────
     let blockchainResult = { status: 'pending' };
     try {
-      const bcResponse = await blockchainService.addCertificate({
+      // Use a fresh suffix to avoid CA conflicts with previously registered identities
+      const identityToUse = req.user?.userId ? req.user.userId.toString() + '_inst' : 'admin';
+      
+      // Debug: log exactly what role we received from the frontend
+      console.log(`🔍 req.user for blockchain:`, JSON.stringify(req.user));
+      
+      // Determine role: this endpoint is university-only (requireUniversity middleware),
+      // so we always use 'institution' role for the chaincode.
+      // The middleware already guarantees req.user.role is 'university' or 'institution'.
+      let fabricRole = 'institution';
+
+      const identityExistsObj = await addCertificate(
+        identityToUse,
+        fabricRole,
         credentialId,
-        studentId:      value.studentId,
-        institution:    value.institution,
-        credentialHash: hash,
-        issueDate:      value.issueDate,
-      });
-      newCred.blockchainTxId = bcResponse.txId || hash;
-      await newCred.save();
-      blockchainResult = { status: 'submitted', txId: bcResponse.txId || hash };
+        value.studentId,
+        studentName,
+        value.degree,
+        issuerOrg || value.institution,
+        'Pass',
+        value.issueDate.toISOString(),
+        hash
+      );
+      
+      // addCertificate returns { success: true } on success
+      if (identityExistsObj && identityExistsObj.success) {
+        const txId = `TX_${credentialId}_${Date.now()}`; // addCertificate doesn't return txId, we generate a placeholder like before
+        newCred.blockchainTxId = txId;
+        await newCred.save();
+        blockchainResult = { status: 'submitted', txId };
+      } else {
+        blockchainResult = { status: 'offline', error: 'Fabric transaction failed' };
+      }
     } catch (bcError) {
       console.warn('Blockchain submission skipped (Fabric offline):', bcError.message);
       blockchainResult = { status: 'offline', error: bcError.message };

@@ -15,7 +15,7 @@ export function useUploadCredential(reload?: () => void) {
     });
 
     try {
-      const resp = await api.post('/api/credentials/upload', fd, {
+      const resp = await api.post('/credentials/upload', fd, {
         headers: { 'Content-Type': 'multipart/form-data' },
         onUploadProgress: (evt: ProgressEvent) => {
           if (evt.total) setProgress(Math.round((evt.loaded * 100) / evt.total));

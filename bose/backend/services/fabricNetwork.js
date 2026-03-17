@@ -15,8 +15,8 @@ const getCredentialModel = async () => {
 };
 
 // ── Helper to get Fabric contract ────────────────────────────────────────────
-const getContract = async (contractName, identityName, timeoutMs = 15000) => {
-  console.log(`Connecting to ${contractName} as ${identityName} with timeout ${timeoutMs}ms...`);
+const getContract = async (contractName, identityName, role = 'client', timeoutMs = 15000) => {
+  console.log(`Connecting to ${contractName} as ${identityName} (role: ${role}) with timeout ${timeoutMs}ms...`);
 
   if (!fs.existsSync(config.ccpPath)) {
     throw new Error(`CCP not found at ${config.ccpPath}`);
@@ -28,9 +28,9 @@ const getContract = async (contractName, identityName, timeoutMs = 15000) => {
 
     const identityExists = await wallet.get(identityName);
     if (!identityExists) {
-      console.log(`⚠️ Identity ${identityName} not found in wallet. Attempting auto-enrollment...`);
+      console.log(`⚠️ Identity ${identityName} not found in wallet. Attempting auto-enrollment as ${role}...`);
       try {
-        await enrollUser({ userId: identityName, role: 'client' });
+        await enrollUser({ userId: identityName, role: role });
         console.log(`✅ Auto-enrollment successful for ${identityName}`);
       } catch (enrollError) {
         console.error(`❌ Auto-enrollment failed for ${identityName}:`, enrollError);
@@ -67,8 +67,8 @@ const getContract = async (contractName, identityName, timeoutMs = 15000) => {
 
 // ── Certificate Contract (BOSEChaincode) ─────────────────────────────────────
 
-export const addCertificate = async (identity, certId, studentId, studentName, course, institution, grade, issueDate, fileHash) => {
-  const { contract, gateway } = await getContract('BOSEChaincode', identity);
+export const addCertificate = async (identity, role, certId, studentId, studentName, course, institution, grade, issueDate, fileHash) => {
+  const { contract, gateway } = await getContract('BOSEChaincode', identity, role);
   try {
     console.log(`Submitting AddCertificate transaction for ${certId}...`);
     await contract.submitTransaction(
@@ -127,6 +127,7 @@ export const issueCredential = async (credentialId, studentId, dataHash, orgMsp)
   try {
     await addCertificate(
       identity,
+      'admin', // Role
       credentialId,
       studentId,
       'Student',          // studentName – not available in this call signature

@@ -30,7 +30,7 @@ export default function UploadCredits({ onUploadSuccess }: UploadCreditsProps) {
 
     useEffect(() => {
         // List institutions for dropdown
-        api.get('/api/institutions')
+        api.get('/institutions')
             .then(res => setInstitutions(res.data || []))
             .catch(err => console.error(err));
     }, []);
@@ -93,7 +93,7 @@ export default function UploadCredits({ onUploadSuccess }: UploadCreditsProps) {
         formData.append('description', certificateDetails.description);
 
         try {
-            await api.post('/api/credentials/upload', formData, {
+            await api.post('/credentials/upload', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
             toast({ title: "Upload Successful", description: "Your credential has been submitted for verification.", variant: "success" });
