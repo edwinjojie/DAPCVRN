@@ -74,6 +74,8 @@ export default function Portfolio({
                                     <p className="text-xs text-slate-400 mt-1">{cert.issueDate}</p>
                                 </div>
                                 {cert.status === 'verified' && <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded font-bold">Verified</span>}
+                                {cert.status === 'pending' && <span className="bg-yellow-100 text-yellow-700 text-xs px-2 py-1 rounded font-bold">Pending Approval</span>}
+                                {cert.status === 'rejected' && <span className="bg-red-100 text-red-700 text-xs px-2 py-1 rounded font-bold">Rejected</span>}
                             </div>
                         ))}
                     </CardContent>

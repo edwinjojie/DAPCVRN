@@ -50,18 +50,41 @@ export default function CertificateDetailsModal({ isOpen, onClose, certificate, 
                                     <Calendar className="w-4 h-4 mr-2 text-slate-400" /> {certificate.issueDate || 'N/A'}
                                 </p>
                             </div>
-                            <div className="bg-green-50 p-3 rounded-lg border border-green-100">
-                                <p className="text-xs text-green-600 uppercase tracking-wider mb-1">Status</p>
-                                <p className="text-green-700 font-bold flex items-center">
-                                    <CheckCircle className="w-4 h-4 mr-2" /> Verified
+                            <div className={`p-3 rounded-lg border ${
+                                certificate.status === 'verified' ? 'bg-green-50 border-green-100' :
+                                certificate.status === 'rejected' ? 'bg-red-50 border-red-100' :
+                                'bg-yellow-50 border-yellow-100'
+                            }`}>
+                                <p className={`text-xs uppercase tracking-wider mb-1 ${
+                                    certificate.status === 'verified' ? 'text-green-600' :
+                                    certificate.status === 'rejected' ? 'text-red-600' :
+                                    'text-yellow-600'
+                                }`}>Status</p>
+                                <p className={`font-bold flex items-center ${
+                                    certificate.status === 'verified' ? 'text-green-700' :
+                                    certificate.status === 'rejected' ? 'text-red-700' :
+                                    'text-yellow-700'
+                                }`}>
+                                    {certificate.status === 'verified' ? (
+                                        <CheckCircle className="w-4 h-4 mr-2" />
+                                    ) : (
+                                        <Clock className="w-4 h-4 mr-2" />
+                                    )}
+                                    <span className="capitalize">{certificate.status}</span>
                                 </p>
                             </div>
                         </div>
 
                         <div className="mb-6">
                             <h4 className="text-sm font-bold text-slate-800 mb-2">Blockchain Verification</h4>
-                            <div className="text-xs font-mono text-slate-500 break-all bg-slate-50 p-2 rounded border border-slate-200">
-                                0x8f2a5...3b9c1 • Verified by {certificate.verifiedBy || 'Consortium'}
+                            <div className={`text-xs font-mono break-all p-2 rounded border ${
+                                certificate.status === 'verified' ? 'bg-slate-50 border-slate-200 text-slate-500' : 'bg-slate-100 border-slate-200 text-slate-400'
+                            }`}>
+                                {certificate.status === 'verified' ? (
+                                    <>0x8f2a5...3b9c1 • Verified by {certificate.verifiedBy || 'Consortium'}</>
+                                ) : (
+                                    <>Pending blockchain anchor... Waiting for verification.</>
+                                )}
                             </div>
                         </div>
 

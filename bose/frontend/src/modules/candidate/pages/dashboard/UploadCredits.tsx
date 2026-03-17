@@ -20,7 +20,7 @@ export default function UploadCredits({ onUploadSuccess }: UploadCreditsProps) {
     // Form State
     const [certificateDetails, setCertificateDetails] = useState({
         name: '',
-        type: 'certification',
+        type: 'certificate',
         institutionId: '',
         institutionName: '',
         issueDate: '',
@@ -102,7 +102,7 @@ export default function UploadCredits({ onUploadSuccess }: UploadCreditsProps) {
             setUploadModalOpen(false);
             setSelectedFile(null);
             setCertificateDetails({
-                name: '', type: 'certification', institutionId: '', institutionName: '', issueDate: '', description: '', publicShare: true, verificationShare: true
+                name: '', type: 'certificate', institutionId: '', institutionName: '', issueDate: '', description: '', publicShare: true, verificationShare: true
             });
             onUploadSuccess();
         } catch (error) {
@@ -178,7 +178,7 @@ export default function UploadCredits({ onUploadSuccess }: UploadCreditsProps) {
                                             value={certificateDetails.type}
                                             onChange={e => setCertificateDetails({ ...certificateDetails, type: e.target.value })}
                                         >
-                                            <option value="certification">Certification</option>
+                                            <option value="certificate">Certification</option>
                                             <option value="degree">Degree</option>
                                             <option value="course">Course Completion</option>
                                         </select>

@@ -11,6 +11,8 @@ import { Credential } from '../models/index.js';
 import User from '../models/User.js';
 import VerificationRequest from '../models/VerificationRequest.js';
 
+import Notification from '../models/Notification.js';
+
 const router = express.Router();
 
 // Multer memory storage so we can compute hash before persisting
@@ -118,6 +120,26 @@ router.post('/upload', upload.single('file'), async (req, res) => {
         await vr.save();
 
         console.log(`Verification request created: ${vr._id}`);
+
+        // Create a notification for the verifier
+        try {
+          const notification = new Notification({
+            notificationId: uuidv4(),
+            userId: verifier._id,
+            type: 'other',
+            title: 'New Verification Request',
+            message: `${newCred.studentName} has requested verification for "${newCred.title}".`,
+            priority: 'medium',
+            relatedCredential: newCred._id,
+            relatedUser: userId,
+            actionUrl: `/university/verification-requests`,
+            actionText: 'View Request'
+          });
+          await notification.save();
+          console.log(`Notification created for verifier: ${verifier._id}`);
+        } catch (notificationError) {
+          console.warn('Failed to create notification for verifier:', notificationError);
+        }
 
         // Notify via websocket
         try {

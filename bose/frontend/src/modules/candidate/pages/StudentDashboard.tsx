@@ -93,9 +93,22 @@ export default function StudentDashboard() {
             type: 'degree',
             institution: 'University of Technology',
             grade: '3.8 GPA',
-            skills: ['React', 'Redux', 'Web Performance'],
+            skills: ['Computer Science', 'Data Structures', 'Algorithms'],
             issueDate: '2023-05-20',
             description: 'Bachelor of Technology in Computer Science'
+          },
+          {
+            id: '3',
+            name: 'Machine Learning Specialization',
+            fileName: 'ml-cert.pdf',
+            status: 'pending',
+            uploadedAt: '2024-03-15T14:20:00Z',
+            type: 'certification',
+            institution: 'DeepLearning.AI',
+            grade: 'In Progress',
+            skills: ['Python', 'Neural Networks', 'TensorFlow'],
+            issueDate: '2024-03-10',
+            description: 'Advanced machine learning techniques'
           }
         ]);
       }

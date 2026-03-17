@@ -43,24 +43,43 @@ export default function DashboardHome({
                 </Button>
             </div>
 
-            {/* Verified Credits Timeline */}
+            {/* My Credentials Timeline */}
             <section>
                 <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center">
                     <Award className="w-5 h-5 mr-2 text-blue-600" />
-                    Verified Credits
+                    My Credentials
                 </h2>
                 <div className="space-y-4 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-300 before:to-transparent">
                     {certificates.map((cert, i) => (
                         <div key={cert.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
                             {/* Icon */}
-                            <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-white bg-slate-200 group-[.is-active]:bg-blue-500 text-slate-500 group-[.is-active]:text-white shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2">
-                                <CheckCircle className="w-5 h-5" />
+                            <div className={`flex items-center justify-center w-10 h-10 rounded-full border-4 border-white shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 ${
+                                cert.status === 'verified' ? 'bg-blue-500 text-white' :
+                                cert.status === 'rejected' ? 'bg-red-500 text-white' :
+                                'bg-slate-200 text-slate-500'
+                            }`}>
+                                {cert.status === 'verified' ? (
+                                    <CheckCircle className="w-5 h-5" />
+                                ) : cert.status === 'rejected' ? (
+                                    <Clock className="w-5 h-5" />
+                                ) : (
+                                    <Clock className="w-5 h-5" />
+                                )}
                             </div>
                             {/* Card */}
                             <Card className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-white p-4 rounded-xl border border-slate-100 shadow-lg hover:shadow-xl transition-all duration-300">
                                 <div className="flex justify-between items-start mb-2">
                                     <div className="font-bold text-slate-800 text-lg">{cert.name}</div>
-                                    <time className="font-caveat font-medium text-blue-500">{cert.grade}</time>
+                                    <div className="flex flex-col items-end">
+                                        <time className="font-caveat font-medium text-blue-500">{cert.grade}</time>
+                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full mt-1 uppercase tracking-wider ${
+                                            cert.status === 'verified' ? 'bg-green-100 text-green-700' :
+                                            cert.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                                            'bg-yellow-100 text-yellow-700'
+                                        }`}>
+                                            {cert.status}
+                                        </span>
+                                    </div>
                                 </div>
                                 <div className="text-slate-500 text-sm mb-3">
                                     {cert.institution} • {cert.issueDate}
