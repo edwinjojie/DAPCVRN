@@ -9,6 +9,8 @@ import Message from './Message.js';
 import Notification from './Notification.js';
 import Profile from './Profile.js';
 import Rating from './Rating.js';
+import BlockchainCertificate from './BlockchainCertificate.js';
+import BlockchainSkill from './BlockchainSkill.js';
 
 export {
   User,
@@ -20,7 +22,9 @@ export {
   Notification,
   Profile,
   Rating,
-  VerificationRequest
+  VerificationRequest,
+  BlockchainCertificate,
+  BlockchainSkill
 };
 
 export default {
@@ -33,6 +37,9 @@ export default {
   Notification,
   Profile,
   Rating,
-  VerificationRequest
+  VerificationRequest,
+  BlockchainCertificate,
+  BlockchainSkill
 };
+
 

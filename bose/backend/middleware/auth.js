@@ -1,20 +1,24 @@
-import jwt from 'jsonwebtoken';
+/**
+ * middleware/auth.js
+ * Authentication removed – JWT has been stripped out.
+ *
+ * This middleware now just passes through and sets req.user from
+ * the x-user-id / x-user-role / x-user-email request headers that
+ * the frontend sends after a successful login.
+ *
+ * If no headers are present, req.user is set to a guest object
+ * so route handlers that check req.user don't crash.
+ */
 
 export function authenticateToken(req, res, next) {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+  // Read plain headers sent by the frontend after login
+  const userId       = req.headers['x-user-id']    || null;
+  const userRole     = req.headers['x-user-role']   || 'guest';
+  const userEmail    = req.headers['x-user-email']  || '';
+  const organization = req.headers['x-user-org']    || '';
 
-  if (!token) {
-    return res.status(401).json({ error: 'Access token required' });
-  }
-
-  const jwtSecret = process.env.JWT_SECRET || 'insecure-demo-secret';
-  jwt.verify(token, jwtSecret, (err, user) => {
-    if (err) {
-      return res.status(403).json({ error: 'Invalid or expired token' });
-    }
-    
-    req.user = user;
-    next();
-  });
+  req.user = { userId, role: userRole, email: userEmail, organization };
+  next();
 }
+
+export default authenticateToken;

@@ -1,5 +1,4 @@
 import express from 'express';
-import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { User, Organization } from '../models/index.js';
 
@@ -9,62 +8,43 @@ const router = express.Router();
 router.options('*', (req, res) => {
   res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, x-user-id, x-user-role, x-user-email, x-user-org');
   res.header('Access-Control-Allow-Credentials', 'true');
   res.sendStatus(200);
 });
 
-
-
-// Login endpoint - Now using MongoDB
+// ── POST /api/auth/login ────────────────────────────────────────────────────
+// Verifies email + password against MongoDB. Returns plain user object.
+// No JWT generated – the frontend stores the user data in localStorage directly.
 router.post('/login', async (req, res) => {
   try {
-    console.log('Login request received from origin:', req.headers.origin);
+    console.log('Login attempt for:', req.body.email);
     const { email, password } = req.body;
-    console.log('Login attempt for email:', email);
 
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
-    // Query MongoDB for user
     const user = await User.findOne({ email }).lean();
-    console.log('Found user in MongoDB:', user ? 'yes' : 'no');
-
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Verify password using bcrypt
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) {
-      console.log('Invalid password for user:', email);
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    console.log('Login successful for user:', email, 'Role:', user.role);
+    console.log('Login successful:', email, '| role:', user.role);
 
-    // Generate JWT token
-    const jwtSecret = process.env.JWT_SECRET || 'insecure-demo-secret';
-    const token = jwt.sign(
-      {
-        userId: user._id.toString(),
-        email: user.email,
-        role: user.role,
-        organization: user.organizationId || user.organization
-      },
-      jwtSecret,
-      { expiresIn: '24h' }
-    );
-
+    // Return user data – frontend stores this in localStorage, no token needed
     res.json({
-      token,
       user: {
-        id: user._id.toString(),
-        email: user.email,
-        name: user.name,
-        role: user.role,
-        organization: user.organizationId || user.organization
+        id:           user._id.toString(),
+        email:        user.email,
+        name:         user.name,
+        role:         user.role,
+        organization: user.organizationId || user.organization || ''
       }
     });
   } catch (error) {
@@ -73,47 +53,42 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// Get current user - Now using MongoDB
+// ── GET /api/auth/me ────────────────────────────────────────────────────────
+// Returns user data from x-user-id header (set by frontend after login).
 router.get('/me', async (req, res) => {
-  const token = req.headers.authorization?.split(' ')[1];
+  const userId = req.headers['x-user-id'];
 
-  if (!token) {
-    return res.status(401).json({ error: 'No token provided' });
+  if (!userId) {
+    return res.status(400).json({ error: 'x-user-id header required' });
   }
 
   try {
-    const jwtSecret = process.env.JWT_SECRET || 'insecure-demo-secret';
-    const decoded = jwt.verify(token, jwtSecret);
-
-    // Query MongoDB for user
-    const user = await User.findById(decoded.userId).lean();
-
+    const user = await User.findById(userId).lean();
     if (!user) {
-      return res.status(401).json({ error: 'User not found' });
+      return res.status(404).json({ error: 'User not found' });
     }
 
     res.json({
       user: {
-        id: user._id.toString(),
-        email: user.email,
-        name: user.name,
-        role: user.role,
-        organization: user.organizationId || user.organization
+        id:           user._id.toString(),
+        email:        user.email,
+        name:         user.name,
+        role:         user.role,
+        organization: user.organizationId || user.organization || ''
       }
     });
   } catch (error) {
     console.error('Get user error:', error);
-    res.status(401).json({ error: 'Invalid token' });
+    res.status(500).json({ error: 'Failed to retrieve user' });
   }
 });
 
-// Get organizations - Now using MongoDB
+// ── GET /api/auth/organizations ─────────────────────────────────────────────
 router.get('/organizations', async (req, res) => {
   try {
     const orgs = await Organization.find({ isApproved: true })
       .select('organizationId name type mspId description logo')
       .lean();
-
     res.json(orgs);
   } catch (error) {
     console.error('Error fetching organizations:', error);

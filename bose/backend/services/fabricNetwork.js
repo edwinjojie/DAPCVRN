@@ -4,10 +4,20 @@ import path from 'path';
 import config from '../config/fabricConfig.js';
 import { enrollUser } from './identityService.js';
 
-// Helper to get contract
+// ── Lazy-load Credential model to avoid circular dep at startup ──────────────
+let _Credential = null;
+const getCredentialModel = async () => {
+  if (!_Credential) {
+    const mod = await import('../models/Credential.js');
+    _Credential = mod.default;
+  }
+  return _Credential;
+};
+
+// ── Helper to get Fabric contract ────────────────────────────────────────────
 const getContract = async (contractName, identityName, timeoutMs = 15000) => {
   console.log(`Connecting to ${contractName} as ${identityName} with timeout ${timeoutMs}ms...`);
-  
+
   if (!fs.existsSync(config.ccpPath)) {
     throw new Error(`CCP not found at ${config.ccpPath}`);
   }
@@ -16,23 +26,19 @@ const getContract = async (contractName, identityName, timeoutMs = 15000) => {
     const ccp = JSON.parse(fs.readFileSync(config.ccpPath, 'utf8'));
     const wallet = await Wallets.newFileSystemWallet(config.walletPath);
 
-    // Check if identity exists in wallet
     const identityExists = await wallet.get(identityName);
     if (!identityExists) {
       console.log(`⚠️ Identity ${identityName} not found in wallet. Attempting auto-enrollment...`);
       try {
-        // Default role 'client' - in a real app, pass the actual role
         await enrollUser({ userId: identityName, role: 'client' });
         console.log(`✅ Auto-enrollment successful for ${identityName}`);
       } catch (enrollError) {
         console.error(`❌ Auto-enrollment failed for ${identityName}:`, enrollError);
-        // Fallback to 'admin' if the specific user cannot be enrolled (e.g. already registered but secret lost)
-        // Only if identityName is NOT admin
         if (identityName !== 'admin') {
-           console.log(`⚠️ Falling back to 'admin' identity for transaction...`);
-           identityName = 'admin';
+          console.log(`⚠️ Falling back to 'admin' identity for transaction...`);
+          identityName = 'admin';
         } else {
-           throw enrollError;
+          throw enrollError;
         }
       }
     }
@@ -46,23 +52,29 @@ const getContract = async (contractName, identityName, timeoutMs = 15000) => {
 
     const network = await gateway.getNetwork(config.channelName);
     const contract = network.getContract(config.chaincodeId, contractName);
-    
     return { contract, gateway };
   })();
 
   const timeoutPromise = new Promise((_, reject) =>
-    setTimeout(() => reject(new Error(`Gateway connection timeout after ${timeoutMs}ms - Fabric network may not be running`)), timeoutMs)
+    setTimeout(
+      () => reject(new Error(`Gateway connection timeout after ${timeoutMs}ms - Fabric network may not be running`)),
+      timeoutMs
+    )
   );
 
   return Promise.race([connectPromise, timeoutPromise]);
 };
 
-// Certificate Contract (BOSEChaincode)
+// ── Certificate Contract (BOSEChaincode) ─────────────────────────────────────
+
 export const addCertificate = async (identity, certId, studentId, studentName, course, institution, grade, issueDate, fileHash) => {
   const { contract, gateway } = await getContract('BOSEChaincode', identity);
   try {
-    console.log(`Submitting AddCertificate transaction...`);
-    await contract.submitTransaction('AddCertificate', certId, studentId, studentName, course, institution, grade, issueDate, fileHash);
+    console.log(`Submitting AddCertificate transaction for ${certId}...`);
+    await contract.submitTransaction(
+      'AddCertificate', certId, studentId, studentName,
+      course, institution, grade, issueDate, fileHash
+    );
     console.log(`✅ AddCertificate transaction submitted`);
     return { success: true };
   } finally {
@@ -80,7 +92,8 @@ export const queryCertificate = async (identity, certId) => {
   }
 };
 
-// Skills Contract (SkillsChaincode)
+// ── Skills Contract (SkillsChaincode) ────────────────────────────────────────
+
 export const addSkill = async (identity, skillId, studentId, studentName, skillName, category, level, issuer) => {
   const { contract, gateway } = await getContract('SkillsChaincode', identity);
   try {
@@ -101,16 +114,117 @@ export const querySkill = async (identity, skillId) => {
   }
 };
 
-// Alias for compatibility with existing code if needed, but better to update callers.
-// existing code used: issueCredential(credentialId, studentId, dataHash, orgMsp)
-// We can map this to addCertificate if possible, or keep a separate function if the chaincode supports it.
-// Since we are moving to the REAL blockchain service, we must use what the chaincode supports.
-// The chaincode supports 'AddCertificate'.
-// We should adapt the backend to use 'addCertificate'.
+// ── Compatibility methods used by credentials.js ─────────────────────────────
+// These map legacy credential-style calls to the underlying Fabric + MongoDB
+// operations.  Fabric calls are best-effort; MongoDB is the source of truth.
+
+/**
+ * issueCredential – writes a credential to the Fabric ledger via AddCertificate.
+ * Called by credentials.js approve workflow.
+ */
+export const issueCredential = async (credentialId, studentId, dataHash, orgMsp) => {
+  const identity = 'admin'; // use admin wallet identity for issuance
+  try {
+    await addCertificate(
+      identity,
+      credentialId,
+      studentId,
+      'Student',          // studentName – not available in this call signature
+      'Certificate',      // course
+      orgMsp || 'Org1MSP',
+      'Pass',             // grade
+      new Date().toISOString(),
+      dataHash
+    );
+    return { transactionId: `TX_${credentialId}_${Date.now()}`, timestamp: new Date().toISOString() };
+  } catch (err) {
+    console.warn(`⚠️ Fabric issueCredential failed (fabric may be offline): ${err.message}`);
+    // Return a pseudo-result so the credential remains approved in MongoDB
+    return { transactionId: null, timestamp: new Date().toISOString(), fabricError: err.message };
+  }
+};
+
+/**
+ * verifyCredential – confirms a credential exists on the ledger (by hash lookup in MongoDB).
+ * Called by credentials.js /verify endpoint.
+ */
+export const verifyCredential = async (credentialId, dataHash) => {
+  const Credential = await getCredentialModel();
+  const cred = await Credential.findOne({ credentialId }).lean();
+  if (!cred) return { verified: false, message: 'Credential not found' };
+  const hashMatch = cred.dataHash === dataHash;
+  return {
+    verified: hashMatch && cred.status === 'verified',
+    credentialId: cred.credentialId,
+    status: cred.status,
+    hashMatch,
+    issuedAt: cred.issueDate,
+    verifiedAt: cred.verifiedAt
+  };
+};
+
+/**
+ * revokeCredential – marks a credential as revoked in MongoDB.
+ * (The current chaincode does not expose a Revoke function, so we only update MongoDB.)
+ * Called by credentials.js /revoke endpoint.
+ */
+export const revokeCredential = async (credentialId, reason) => {
+  const Credential = await getCredentialModel();
+  const cred = await Credential.findOne({ credentialId });
+  if (!cred) throw new Error(`Credential ${credentialId} not found`);
+  cred.status = 'revoked';
+  cred.revocationReason = reason;
+  cred.revokedAt = new Date();
+  await cred.save();
+  console.log(`🔒 Credential ${credentialId} revoked: ${reason}`);
+  return { transactionId: `REVOKE_${credentialId}_${Date.now()}`, timestamp: new Date().toISOString() };
+};
+
+/**
+ * getCredential – retrieves a single credential from MongoDB by its _id or credentialId.
+ * Called by credentials.js GET /:credentialId as a fallback.
+ */
+export const getCredential = async (credentialId) => {
+  const Credential = await getCredentialModel();
+  const cred = await Credential.findOne({ credentialId }).lean();
+  return cred || null;
+};
+
+/**
+ * queryAllCredentials – returns all credentials from MongoDB.
+ * Called by credentials.js GET / (auditor route).
+ */
+export const queryAllCredentials = async () => {
+  const Credential = await getCredentialModel();
+  return await Credential.find({}).sort({ createdAt: -1 }).lean();
+};
+
+/**
+ * queryCredentialsByStudent – returns all credentials for a given studentId.
+ * Called by credentials.js GET /student/:studentId.
+ */
+export const queryCredentialsByStudent = async (studentId) => {
+  const Credential = await getCredentialModel();
+  // studentId could be a MongoDB ObjectId (userId) or a plain string studentId field
+  const creds = await Credential.find({
+    $or: [
+      { userId: studentId },
+      { studentId }
+    ]
+  }).sort({ createdAt: -1 }).lean();
+  return creds;
+};
 
 export default {
   addCertificate,
   queryCertificate,
   addSkill,
-  querySkill
+  querySkill,
+  issueCredential,
+  verifyCredential,
+  revokeCredential,
+  getCredential,
+  queryAllCredentials,
+  queryCredentialsByStudent
 };
+

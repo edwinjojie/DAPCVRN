@@ -1,7 +1,7 @@
 /**
  * Service to interact with the external blockchain REST API
  */
-const BLOCKCHAIN_SERVICE_URL = process.env.BLOCKCHAIN_SERVICE_URL || 'http://localhost:3002';
+const BLOCKCHAIN_SERVICE_URL = process.env.BLOCKCHAIN_SERVICE_URL || 'http://localhost:3001';
 
 /**
  * Issue a new certificate transaction on the blockchain
@@ -54,7 +54,7 @@ export const addCertificate = async (data) => {
 export const verifyCredential = async (credentialId) => {
   try {
     const response = await fetch(`${BLOCKCHAIN_SERVICE_URL}/certificate/${credentialId}`);
-    
+
     if (!response.ok) {
       if (response.status === 404) return { verified: false, message: 'Not found on blockchain' };
       throw new Error(`Blockchain service error: ${response.status}`);
