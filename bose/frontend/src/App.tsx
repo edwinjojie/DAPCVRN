@@ -16,6 +16,7 @@ import RecruiterJobs from './modules/recruiter/pages/Jobs';
 import Applicants from './modules/recruiter/pages/Applicants';
 import Candidates from './modules/recruiter/pages/Candidates';
 import AdminDashboard from './modules/admin/pages/AdminDashboard';
+import AdminRoutes from './modules/admin/AdminRoutes';
 import UniversityDashboard from './modules/university/UniversityDashboard';
 import Messages from './modules/recruiter/pages/Messages';
 import RedirectToRoleDashboard from './modules/common/pages/RedirectToRoleDashboard';
@@ -106,10 +107,10 @@ function App() {
                     </Layout>
                   </ProtectedRoute>
                 } />
-                <Route path="/dashboard/admin" element={
+                <Route path="/dashboard/admin/*" element={
                   <ProtectedRoute roles={["admin"]}>
                     <Layout>
-                      <AdminDashboard />
+                      <AdminRoutes />
                     </Layout>
                   </ProtectedRoute>
                 } />

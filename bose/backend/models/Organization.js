@@ -44,6 +44,12 @@ const organizationSchema = new mongoose.Schema({
   },
   logo: String,
   description: String,
+  status: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected', 'suspended'],
+    default: 'pending'
+  },
+  rejectionReason: String,
   approved: {
     type: Boolean,
     default: false

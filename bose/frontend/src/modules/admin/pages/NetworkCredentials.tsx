@@ -1,480 +1,216 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../../contexts/AuthContext';
-import { useFabricTx } from '../../../hooks/useFabricTx';
-import { Card, CardContent } from '../../../components/ui/card';
+import React, { useState } from 'react';
+import { useNetworkCredentials, NetworkCredential } from '../hooks/useNetworkCredentials';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../../../components/ui/dialog';
-import { useToast } from '../../../components/ui/toast';
-import {
-  FileText,
-  Plus,
-  Search,
-  CheckCircle,
-  X,
-  Eye,
-  Hash,
-  Calendar,
-  Building
+import { 
+  Shield, 
+  Search, 
+  Filter, 
+  Award, 
+  CheckCircle, 
+  XCircle, 
+  AlertTriangle, 
+  Eye, 
+  Ban, 
+  ExternalLink,
+  Info
 } from 'lucide-react';
-import { formatDate, truncateHash, getStatusColor } from '../../../lib/utils';
-import { useStore } from '../../../store/useStore';
+import { format } from 'date-fns';
 
-interface Credential {
-  credentialId: string;
-  studentId: string;
-  dataHash: string;
-  issuer: string;
-  issuedAt: string;
-  status: string;
-}
+export default function NetworkCredentials() {
+  const [searchTerm, setSearchTerm] = useState("");
+  const { 
+    credentials, 
+    loading, 
+    filters, 
+    setFilters, 
+    revokeCredential 
+  } = useNetworkCredentials();
 
-export default function Credentials() {
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const { submitTransaction, evaluateTransaction, loading } = useFabricTx();
-  const { credentials, setCredentials } = useStore();
+  const [revokingId, setRevokingId] = useState<string | null>(null);
+  const [revocationReason, setRevocationReason] = useState("");
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [selectedCredential, setSelectedCredential] = useState<Credential | null>(null);
-
-  // Issue credential form state
-  const [issueForm, setIssueForm] = useState({
-    studentId: '',
-    dataHash: '',
-    credentialType: 'academic'
-  });
-
-  // Verify credential form state
-  const [verifyForm, setVerifyForm] = useState({
-    credentialId: '',
-    dataHash: ''
-  });
-
-  useEffect(() => {
-    loadCredentials();
-  }, [user]);
-
-  const loadCredentials = async () => {
-    try {
-      let result;
-
-      if (user?.role === 'student') {
-        result = await evaluateTransaction(`credentials/student/${user.id}`);
-      } else if (user?.role === 'auditor') {
-        result = await evaluateTransaction('credentials');
-      } else {
-        result = await evaluateTransaction('credentials', { limit: 50 });
-      }
-
-      if (result.success) {
-        setCredentials(result.data.credentials || []);
-      }
-    } catch (error) {
-      console.error('Error loading credentials:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load credentials',
-        variant: 'error'
-      });
-    }
-  };
-
-  const handleIssueCredential = async (e: React.FormEvent) => {
+  const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    setFilters({ ...filters, search: searchTerm });
+  };
 
-    if (!issueForm.studentId || !issueForm.dataHash) {
-      toast({
-        title: 'Validation Error',
-        description: 'Please fill in all required fields',
-        variant: 'error'
-      });
-      return;
-    }
-
-    try {
-      const result = await submitTransaction('credentials/issue', issueForm);
-
-      if (result.success) {
-        toast({
-          title: 'Credential Issued Successfully',
-          description: `Credential ${result.data.credentialId} has been issued`,
-          variant: 'success'
-        });
-        setIssueForm({ studentId: '', dataHash: '', credentialType: 'academic' });
-        loadCredentials();
-      } else {
-        throw new Error(result.error);
-      }
-    } catch (error: any) {
-      toast({
-        title: 'Issuance Failed',
-        description: error.message || 'Failed to issue credential',
-        variant: 'error'
-      });
+  const handleRevoke = async () => {
+    if (revokingId && revocationReason) {
+      await revokeCredential(revokingId, revocationReason);
+      setRevokingId(null);
+      setRevocationReason("");
     }
   };
 
-  const handleVerifyCredential = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!verifyForm.credentialId || !verifyForm.dataHash) {
-      toast({
-        title: 'Validation Error',
-        description: 'Please fill in all required fields',
-        variant: 'error'
-      });
-      return;
-    }
-
-    try {
-      const result = await submitTransaction('credentials/verify', verifyForm);
-
-      if (result.success) {
-        toast({
-          title: result.data.valid ? 'Credential Valid' : 'Credential Invalid',
-          description: result.data.reason,
-          variant: result.data.valid ? 'success' : 'error'
-        });
-        setVerifyForm({ credentialId: '', dataHash: '' });
-      } else {
-        throw new Error(result.error);
-      }
-    } catch (error: any) {
-      toast({
-        title: 'Verification Failed',
-        description: error.message || 'Failed to verify credential',
-        variant: 'error'
-      });
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'verified':
+        return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"><CheckCircle className="h-3 w-3" /> Verified</span>;
+      case 'revoked':
+        return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800"><XCircle className="h-3 w-3" /> Revoked</span>;
+      case 'pending':
+        return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800"><Info className="h-3 w-3" /> Pending</span>;
+      default:
+        return null;
     }
   };
-
-  const handleRevokeCredential = async (credentialId: string) => {
-    if (!confirm('Are you sure you want to revoke this credential?')) {
-      return;
-    }
-
-    try {
-      const result = await submitTransaction('credentials/revoke', {
-        credentialId,
-        reason: 'Administrative revocation'
-      });
-
-      if (result.success) {
-        toast({
-          title: 'Credential Revoked',
-          description: 'The credential has been successfully revoked',
-          variant: 'success'
-        });
-        loadCredentials();
-      } else {
-        throw new Error(result.error);
-      }
-    } catch (error: any) {
-      toast({
-        title: 'Revocation Failed',
-        description: error.message || 'Failed to revoke credential',
-        variant: 'error'
-      });
-    }
-  };
-
-  const filteredCredentials = credentials.filter(cred => {
-    const matchesSearch =
-      cred.credentialId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cred.studentId.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesStatus = filterStatus === 'all' || cred.status === filterStatus;
-
-    return matchesSearch && matchesStatus;
-  });
-
-  const canIssue = ['employer', 'auditor'].includes(user?.role || '');
-  const canVerify = ['verifier', 'employer', 'auditor'].includes(user?.role || '');
-  const canRevoke = user?.role === 'auditor';
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-6 space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Credentials</h1>
-          <p className="text-gray-600">Manage blockchain credentials and verification</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Global Credential Audit</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Monitor and manage all digital certificates across the network.</p>
         </div>
-
-        <div className="flex gap-2">
-          {canVerify && (
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="outline">
-                  <CheckCircle className="mr-2 h-4 w-4" />
-                  Verify
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Verify Credential</DialogTitle>
-                  <DialogDescription>
-                    Verify a credential by providing its ID and expected data hash
-                  </DialogDescription>
-                </DialogHeader>
-                <form onSubmit={handleVerifyCredential} className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium">Credential ID</label>
-                    <Input
-                      value={verifyForm.credentialId}
-                      onChange={(e) => setVerifyForm(prev => ({ ...prev, credentialId: e.target.value }))}
-                      placeholder="Enter credential ID"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Data Hash</label>
-                    <Input
-                      value={verifyForm.dataHash}
-                      onChange={(e) => setVerifyForm(prev => ({ ...prev, dataHash: e.target.value }))}
-                      placeholder="Enter expected data hash"
-                    />
-                  </div>
-                  <Button type="submit" disabled={loading} className="w-full">
-                    {loading ? 'Verifying...' : 'Verify Credential'}
-                  </Button>
-                </form>
-              </DialogContent>
-            </Dialog>
-          )}
-
-          {canIssue && (
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Issue Credential
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Issue New Credential</DialogTitle>
-                  <DialogDescription>
-                    Create a new credential on the blockchain network
-                  </DialogDescription>
-                </DialogHeader>
-                <form onSubmit={handleIssueCredential} className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium">Student ID</label>
-                    <Input
-                      value={issueForm.studentId}
-                      onChange={(e) => setIssueForm(prev => ({ ...prev, studentId: e.target.value }))}
-                      placeholder="Enter student ID"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Data Hash</label>
-                    <Input
-                      value={issueForm.dataHash}
-                      onChange={(e) => setIssueForm(prev => ({ ...prev, dataHash: e.target.value }))}
-                      placeholder="Enter credential data hash"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Credential Type</label>
-                    <select
-                      className="w-full p-2 border border-gray-200 rounded-md"
-                      value={issueForm.credentialType}
-                      onChange={(e) => setIssueForm(prev => ({ ...prev, credentialType: e.target.value }))}
-                    >
-                      <option value="academic">Academic Degree</option>
-                      <option value="professional">Professional Certificate</option>
-                      <option value="training">Training Completion</option>
-                    </select>
-                  </div>
-                  <Button type="submit" disabled={loading} className="w-full">
-                    {loading ? 'Issuing...' : 'Issue Credential'}
-                  </Button>
-                </form>
-              </DialogContent>
-            </Dialog>
-          )}
+        <div className="flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100 dark:border-indigo-800 shadow-sm">
+          <Award className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+          <span className="text-sm font-semibold text-indigo-800 dark:text-indigo-300">
+            {credentials.length} Network Credentials
+          </span>
         </div>
       </div>
 
-      {/* Search and Filters */}
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Search credentials..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
+      <Card className="border-none shadow-xl bg-white dark:bg-gray-800/50">
+        <CardHeader className="pb-4">
+          <div className="flex flex-col md:flex-row gap-4 justify-between">
+            <form onSubmit={handleSearch} className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input 
+                placeholder="Search by title, student, or institution..." 
+                className="pl-10"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </form>
             <div className="flex gap-2">
-              <select
-                className="px-4 py-2 border border-gray-200 rounded-md"
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
+              <select 
+                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                value={filters.type || ""}
+                onChange={(e) => setFilters({ ...filters, type: e.target.value || undefined })}
               >
-                <option value="all">All Status</option>
-                <option value="active">Active</option>
-                <option value="revoked">Revoked</option>
+                <option value="">All Types</option>
+                <option value="degree">Degree</option>
+                <option value="certificate">Certificate</option>
+                <option value="diploma">Diploma</option>
               </select>
-              <Button variant="outline" onClick={loadCredentials}>
-                Refresh
-              </Button>
+              <select 
+                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                value={filters.status || ""}
+                onChange={(e) => setFilters({ ...filters, status: e.target.value || undefined })}
+              >
+                <option value="">All Status</option>
+                <option value="verified">Verified</option>
+                <option value="revoked">Revoked</option>
+                <option value="pending">Pending</option>
+              </select>
             </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
+              <thead className="bg-gray-50 dark:bg-gray-900/50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Credential</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Institution</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Issue Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Blockchain</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
+                {loading ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-10 text-center text-gray-500">Loading credentials...</td>
+                  </tr>
+                ) : credentials.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-10 text-center text-gray-500">No credentials found matching your criteria.</td>
+                  </tr>
+                ) : (
+                  credentials.map((cred) => (
+                    <tr key={cred._id} className={`hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors ${cred.isPotentialDuplicate ? 'bg-orange-50/50 dark:bg-orange-900/10' : ''}`}>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex flex-col">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{cred.title}</span>
+                            {cred.isPotentialDuplicate && (
+                              <AlertTriangle className="h-4 w-4 text-orange-500" title="Potential duplicate detected" />
+                            )}
+                          </div>
+                          <span className="text-xs text-gray-500 capitalize">{cred.type}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                        {cred.studentName}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {cred.institution}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {format(new Date(cred.issueDate), 'MMM dd, yyyy')}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {getStatusBadge(cred.status)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <Eye className="h-4 w-4 text-blue-600" />
+                        </Button>
+                        {cred.status !== 'revoked' && (
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="text-red-600 border-red-200 hover:bg-red-50"
+                            onClick={() => setRevokingId(cred._id)}
+                          >
+                            <Ban className="h-4 w-4 mr-1" /> Revoke
+                          </Button>
+                        )}
+                        {cred.blockchainTxId && (
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="View on Blockchain">
+                            <ExternalLink className="h-4 w-4 text-indigo-600" />
+                          </Button>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </CardContent>
       </Card>
 
-      {/* Credentials List */}
-      <div className="grid gap-4">
-        {filteredCredentials.length > 0 ? (
-          filteredCredentials.map((credential) => (
-            <Card key={credential.credentialId} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100">
-                      <FileText className="h-5 w-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-900">{credential.credentialId}</h3>
-                      <p className="text-sm text-gray-500">Student: {credential.studentId}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(credential.status)}`}>
-                      {credential.status}
-                    </span>
-
-                    <div className="flex gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setSelectedCredential(credential)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-
-                      {canRevoke && credential.status === 'active' && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRevokeCredential(credential.credentialId)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Hash className="h-4 w-4 text-gray-400" />
-                    <span className="text-gray-600">Hash: {truncateHash(credential.dataHash)}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Building className="h-4 w-4 text-gray-400" />
-                    <span className="text-gray-600">Issuer: {credential.issuer}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-gray-400" />
-                    <span className="text-gray-600">Issued: {formatDate(credential.issuedAt)}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))
-        ) : (
-          <Card>
-            <CardContent className="p-12 text-center">
-              <FileText className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No credentials found</h3>
-              <p className="text-gray-500 mb-4">
-                {searchTerm || filterStatus !== 'all'
-                  ? 'Try adjusting your search or filters'
-                  : 'No credentials have been issued yet'
-                }
-              </p>
-              {canIssue && !searchTerm && filterStatus === 'all' && (
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Issue First Credential
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-        )}
-      </div>
-
-      {/* Credential Details Modal */}
-      <Dialog open={!!selectedCredential} onOpenChange={() => setSelectedCredential(null)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Credential Details</DialogTitle>
-            <DialogDescription>
-              Complete information about this blockchain credential
-            </DialogDescription>
-          </DialogHeader>
-
-          {selectedCredential && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Credential ID</label>
-                  <p className="mt-1 font-mono text-sm">{selectedCredential.credentialId}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Status</label>
-                  <div className="mt-1">
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(selectedCredential.status)}`}>
-                      {selectedCredential.status}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-gray-500">Student ID</label>
-                <p className="mt-1">{selectedCredential.studentId}</p>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-gray-500">Data Hash</label>
-                <p className="mt-1 font-mono text-sm break-all">{selectedCredential.dataHash}</p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Issuing Organization</label>
-                  <p className="mt-1">{selectedCredential.issuer}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Issue Date</label>
-                  <p className="mt-1">{formatDate(selectedCredential.issuedAt)}</p>
-                </div>
-              </div>
-
-              <div className="border-t pt-4">
-                <h4 className="font-medium mb-2">Blockchain Information</h4>
-                <div className="text-sm text-gray-600 space-y-1">
-                  <p>• Stored on Hyperledger Fabric network</p>
-                  <p>• Channel: mychannel</p>
-                  <p>• Chaincode: cred</p>
-                  <p>• Endorsement policy: Org1MSP AND Org2MSP</p>
-                </div>
-              </div>
+      {/* Revocation Modal */}
+      {revokingId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl w-full max-w-md p-6 border border-red-100 dark:border-red-900/30">
+            <div className="flex items-center gap-3 mb-4 text-red-600">
+              <AlertTriangle className="h-6 w-6" />
+              <h3 className="text-lg font-bold">Admin Revocation Override</h3>
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
+            <p className="text-sm text-gray-500 mb-4">
+              You are about to revoke a credential from the entire system and blockchain. This action is recorded and should only be used for fraudulent data.
+            </p>
+            <textarea
+              className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-red-500 outline-none transition-all h-32"
+              placeholder="Mandatory revocation reason..."
+              value={revocationReason}
+              onChange={(e) => setRevocationReason(e.target.value)}
+            />
+            <div className="flex justify-end gap-3 mt-6">
+              <Button variant="secondary" onClick={() => { setRevokingId(null); setRevocationReason(""); }}>Cancel</Button>
+              <Button variant="default" className="bg-red-600 hover:bg-red-700" onClick={handleRevoke} disabled={!revocationReason}>
+                Confirm Revocation
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -8,9 +8,14 @@ export function useAdminSummary() {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const res = await api.get("/api/admin/summary");
-      setData(res.data);
-      setLoading(false);
+      try {
+        const res = await api.get("/api/admin/summary");
+        setData(res.data.data);
+      } catch (error) {
+        console.error("Error fetching admin summary:", error);
+      } finally {
+        setLoading(false);
+      }
     })();
   }, []);
 

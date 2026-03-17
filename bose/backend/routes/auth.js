@@ -30,6 +30,12 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
+    // Check if user is banned
+    if (user.status === 'banned') {
+      return res.status(403).json({ error: 'Your account has been banned. Please contact support.' });
+    }
+
+    // Verify password using bcrypt
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) {
       return res.status(401).json({ error: 'Invalid credentials' });
