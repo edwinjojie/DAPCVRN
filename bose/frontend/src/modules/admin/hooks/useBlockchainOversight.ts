@@ -31,7 +31,7 @@ export function useBlockchainOversight() {
 
   const fetchHealth = useCallback(async () => {
     try {
-      const res = await api.get("/api/admin/blockchain/health");
+      const res = await api.get("/admin/blockchain/health");
       setHealth(res.data.data);
     } catch (error) {
       console.error("Error fetching blockchain health:", error);
@@ -40,7 +40,7 @@ export function useBlockchainOversight() {
 
   const fetchTransactions = useCallback(async () => {
     try {
-      const res = await api.get("/api/admin/blockchain/transactions");
+      const res = await api.get("/admin/blockchain/transactions");
       setTransactions(res.data.data);
     } catch (error) {
       console.error("Error fetching blockchain transactions:", error);
@@ -59,7 +59,7 @@ export function useBlockchainOversight() {
 
   const verifyManual = async (credentialId: string) => {
     try {
-      const res = await api.post("/api/admin/blockchain/verify-manual", { credentialId });
+      const res = await api.post("/admin/blockchain/verify-manual", { credentialId });
       toast({ title: "Verification Successful", description: "Credential data matches the blockchain record.", variant: "success" });
       return res.data.data;
     } catch (error: any) {

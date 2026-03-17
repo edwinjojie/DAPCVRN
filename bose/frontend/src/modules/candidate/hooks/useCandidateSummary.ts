@@ -8,7 +8,7 @@ export function useCandidateSummary() {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const res = await api.get("/api/candidate/summary");
+      const res = await api.get("/candidate/summary");
       setData(res.data);
       setLoading(false);
     })();

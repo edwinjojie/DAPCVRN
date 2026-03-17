@@ -10,7 +10,7 @@ export function useMyCredentials() {
   const reload = async () => {
     setLoading(true);
     try {
-      const res = await api.get("/api/credentials/my");
+      const res = await api.get("/credentials/my");
       setData(res.data);
     } catch {
       toast({ title: "Failed to load credentials", variant: "error" });

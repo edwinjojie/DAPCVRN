@@ -10,7 +10,7 @@ export function useJobs() {
   const reload = async () => {
     setLoading(true);
     try {
-      const res = await api.get("/api/public/jobs");
+      const res = await api.get("/public/jobs");
       setJobs(res.data || []);
     } catch {
       setJobs([]);
@@ -20,7 +20,7 @@ export function useJobs() {
   };
 
   const apply = async (jobId: string, title: string) => {
-    await api.post(`/api/applications/apply/${jobId}`, { title });
+    await api.post(`/applications/apply/${jobId}`, { title });
     toast({ title: "Applied successfully!", variant: "success" });
   };
 

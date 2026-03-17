@@ -7,7 +7,7 @@ export function useApplications() {
 
   const reload = async () => {
     setLoading(true);
-    const res = await api.get("/api/applications/my");
+    const res = await api.get("/applications/my");
     setApps(res.data);
     setLoading(false);
   };

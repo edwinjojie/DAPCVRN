@@ -36,7 +36,7 @@ export function useNetworkCredentials(initialFilters: CredentialFilters = {}) {
       if (filters.status) params.append('status', filters.status);
       if (filters.search) params.append('search', filters.search);
 
-      const res = await api.get(`/api/admin/credentials?${params.toString()}`);
+      const res = await api.get(`/admin/credentials?${params.toString()}`);
       setCredentials(res.data.data);
     } catch (error) {
       console.error("Error fetching network credentials:", error);
@@ -52,7 +52,7 @@ export function useNetworkCredentials(initialFilters: CredentialFilters = {}) {
 
   const revokeCredential = async (id: string, reason: string) => {
     try {
-      await api.post(`/api/admin/credentials/${id}/revoke`, { reason });
+      await api.post(`/admin/credentials/${id}/revoke`, { reason });
       await fetchCredentials();
       toast({ title: "Credential revoked successfully", variant: "success" });
     } catch (error: any) {

@@ -17,13 +17,13 @@ export function useProfile() {
 
   const fetchProfile = async () => {
     setLoading(true);
-    const res = await api.get("/api/candidate/profile");
+    const res = await api.get("/candidate/profile");
     setProfile(res.data);
     setLoading(false);
   };
 
   const updateProfile = async (payload: Partial<CandidateProfile>) => {
-    const res = await api.post("/api/candidate/profile", payload);
+    const res = await api.post("/candidate/profile", payload);
     setProfile(res.data);
     toast({ title: "Profile updated", variant: "success" });
   };

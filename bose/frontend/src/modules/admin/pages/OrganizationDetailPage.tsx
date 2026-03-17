@@ -16,7 +16,7 @@ export default function OrganizationDetailPage() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await api.get(`/api/admin/orgs/${id}`);
+        const res = await api.get(`/admin/orgs/${id}`);
         setOrg(res.data.data);
       } catch (error) {
         toast({ title: "Failed to fetch organization details", variant: "error" });

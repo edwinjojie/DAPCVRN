@@ -5,6 +5,7 @@ import { Input } from '../../../components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Upload, FileText, X, CheckCircle2, Sparkles } from 'lucide-react';
 import { useToast } from '../../../components/ui/toast';
+import api from '../../../lib/api'; // Added for fetching institutions
 
 export default function CredentialUpload({ onUploaded }: { onUploaded?: () => void }) {
   const { upload, progress } = useUploadCredential(onUploaded);
@@ -13,8 +14,18 @@ export default function CredentialUpload({ onUploaded }: { onUploaded?: () => vo
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState('');
   const [type, setType] = useState('academic');
+  const [institutionId, setInstitutionId] = useState(''); // Added institutionId state
+  const [institutionName, setInstitutionName] = useState(''); // Added institutionName state
+  const [institutions, setInstitutions] = useState<{ id: string; name: string }[]>([]); // Added institutions state
   const [isDragging, setIsDragging] = useState(false);
   const [filePreview, setFilePreview] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    // Fetch institutions on component mount
+    api.get('/institutions')
+      .then((res: any) => setInstitutions(res.data || []))
+      .catch((err: any) => console.error('Failed to load institutions:', err));
+  }, []);
 
   const handleFileSelect = (selectedFile: File | null) => {
     if (!selectedFile) return;
@@ -92,13 +103,16 @@ export default function CredentialUpload({ onUploaded }: { onUploaded?: () => vo
     }
 
     try {
-      await upload(file, { title, type });
+      // Pass institutionId and institution (name) to match backend requirements
+      await upload(file, { title, type, institutionId, institution: institutionName });
       toast({
         title: 'Upload successful',
         description: 'Your credential has been uploaded and submitted for verification',
         variant: 'success'
       });
       setTitle('');
+      setInstitutionId('');
+      setInstitutionName('');
       setFile(null);
       setFilePreview(null);
       if (fileInputRef.current) {
@@ -153,6 +167,31 @@ export default function CredentialUpload({ onUploaded }: { onUploaded?: () => vo
             <option value="achievement">Achievement Badge</option>
             <option value="other">Other</option>
           </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+            Verifying Institution
+          </label>
+          <select 
+            className="w-full h-11 rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800/50 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400 transition-all duration-200"
+            value={institutionId} 
+            onChange={e => {
+              const selectedId = e.target.value;
+              const inst = institutions.find(i => i.id === selectedId);
+              setInstitutionId(selectedId);
+              setInstitutionName(inst ? inst.name : (selectedId === 'manual' ? 'manual' : ''));
+            }}
+          >
+            <option value="">Select Institution...</option>
+            {institutions.map(inst => (
+              <option key={inst.id} value={inst.id}>{inst.name}</option>
+            ))}
+            <option value="manual">Other (Manual Verification)</option>
+          </select>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Optional. Only required if you want automatic verification routing.
+          </p>
         </div>
 
         <div>

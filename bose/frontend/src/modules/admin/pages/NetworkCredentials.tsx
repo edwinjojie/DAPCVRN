@@ -15,9 +15,12 @@ import {
   Ban, 
   ExternalLink,
   Info,
-  RefreshCcw
+  RefreshCcw,
+  Download
 } from 'lucide-react';
 import { format } from 'date-fns';
+import api from '../../../lib/api';
+import { useToast } from '../../../components/ui/toast';
 
 export default function NetworkCredentials() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -26,11 +29,37 @@ export default function NetworkCredentials() {
     loading, 
     filters, 
     setFilters, 
-    revokeCredential 
+    revokeCredential,
+    refresh
   } = useNetworkCredentials();
 
+  const { toast } = useToast();
   const [revokingId, setRevokingId] = useState<string | null>(null);
   const [revocationReason, setRevocationReason] = useState("");
+
+  const exportCredentials = () => {
+    const headers = ["Title", "Student", "Email", "Institution", "Type", "Status", "Issue Date", "Blockchain Tx"];
+    const rows = credentials.map(c => [
+      c.title,
+      c.studentName,
+      c.studentEmail || "N/A",
+      c.institution,
+      c.type,
+      c.status,
+      format(new Date(c.issueDate), 'yyyy-MM-dd'),
+      c.blockchainTxId || "Pending"
+    ]);
+    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('hidden', '');
+    a.setAttribute('href', url);
+    a.setAttribute('download', 'network_credentials_report.csv');
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,13 +70,13 @@ export default function NetworkCredentials() {
     if (revokingId && revocationReason) {
       await revokeCredential(revokingId, revocationReason);
       setRevokingId(null);
-      setReason("");
+      setRevocationReason("");
     }
   };
 
   const handleRetryBlockchain = async (id: string) => {
     try {
-      await api.post(`/api/admin/blockchain/retry/${id}`);
+      await api.post(`/admin/blockchain/retry/${id}`);
       toast({ title: "Retry Successful", description: "Credential anchored to blockchain.", variant: "success" });
       refresh();
     } catch (error: any) {
@@ -79,11 +108,21 @@ export default function NetworkCredentials() {
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Global Credential Audit</h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1">Monitor and manage all digital certificates across the network.</p>
         </div>
-        <div className="flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100 dark:border-indigo-800 shadow-sm">
-          <Award className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-          <span className="text-sm font-semibold text-indigo-800 dark:text-indigo-300">
-            {credentials.length} Network Credentials
-          </span>
+        <div className="flex items-center gap-4">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={exportCredentials}
+            className="flex items-center gap-2 text-indigo-600 border-indigo-200 hover:bg-indigo-50"
+          >
+            <Download className="h-4 w-4" /> Export Report
+          </Button>
+          <div className="flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100 dark:border-indigo-800 shadow-sm">
+            <Award className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+            <span className="text-sm font-semibold text-indigo-800 dark:text-indigo-300">
+              {credentials.length} Network Credentials
+            </span>
+          </div>
         </div>
       </div>
 

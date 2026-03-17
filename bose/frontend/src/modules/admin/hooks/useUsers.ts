@@ -35,7 +35,7 @@ export function useUsers(initialFilters: UserFilters = {}) {
       if (filters.status) params.append('status', filters.status);
       if (filters.search) params.append('search', filters.search);
 
-      const res = await api.get(`/api/admin/users?${params.toString()}`);
+      const res = await api.get(`/admin/users?${params.toString()}`);
       setUsers(res.data.data);
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -51,7 +51,7 @@ export function useUsers(initialFilters: UserFilters = {}) {
 
   const banUser = async (id: string) => {
     try {
-      await api.post(`/api/admin/users/${id}/ban`);
+      await api.post(`/admin/users/${id}/ban`);
       await fetchUsers();
       toast({ title: "User banned successfully", variant: "success" });
     } catch (error: any) {
@@ -61,7 +61,7 @@ export function useUsers(initialFilters: UserFilters = {}) {
 
   const unbanUser = async (id: string) => {
     try {
-      await api.post(`/api/admin/users/${id}/unban`);
+      await api.post(`/admin/users/${id}/unban`);
       await fetchUsers();
       toast({ title: "User unbanned successfully", variant: "success" });
     } catch (error) {
@@ -71,7 +71,7 @@ export function useUsers(initialFilters: UserFilters = {}) {
 
   const updateUserRole = async (id: string, role: string) => {
     try {
-      await api.post(`/api/admin/users/${id}/role`, { role });
+      await api.post(`/admin/users/${id}/role`, { role });
       await fetchUsers();
       toast({ title: "User role updated", variant: "success" });
     } catch (error) {

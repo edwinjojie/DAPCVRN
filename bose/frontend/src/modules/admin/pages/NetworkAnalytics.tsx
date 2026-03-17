@@ -36,21 +36,21 @@ export default function NetworkAnalytics() {
   if (!data) return null;
 
   // Format growth data for charts
-  const userGrowthData = data.growth.users.map(item => ({
+  const userGrowthData = data?.growth?.users?.map(item => ({
     name: `${item._id.month}/${item._id.year}`,
     users: item.count
-  }));
+  })) || [];
 
-  const credGrowthData = data.growth.credentials.map(item => ({
+  const credGrowthData = data?.growth?.credentials?.map(item => ({
     name: `${item._id.month}/${item._id.year}`,
     issued: item.count
-  }));
+  })) || [];
 
   // Format distribution data
-  const distributionData = data.distribution.map(item => ({
+  const distributionData = data?.distribution?.map(item => ({
     name: item._id.charAt(0).toUpperCase() + item._id.slice(1),
     value: item.count
-  }));
+  })) || [];
 
   return (
     <div className="p-6 space-y-8">
@@ -69,7 +69,7 @@ export default function NetworkAnalytics() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-red-700 dark:text-red-400">
-              {data.fraud.rejectionRate.toFixed(1)}%
+              {(data?.fraud?.rejectionRate ?? 0).toFixed(1)}%
             </div>
             <p className="text-xs text-red-600/80 mt-1">Verification Rejection Rate</p>
           </CardContent>
@@ -83,7 +83,7 @@ export default function NetworkAnalytics() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-orange-700 dark:text-orange-400">
-              {data.fraud.suspiciousOrgsCount}
+              {data?.fraud?.suspiciousOrgsCount ?? 0}
             </div>
             <p className="text-xs text-orange-600/80 mt-1">Orgs with High Rejection Rates</p>
           </CardContent>
@@ -97,7 +97,7 @@ export default function NetworkAnalytics() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-green-700 dark:text-green-400">
-              {data.fraud.revocationCount}
+              {data?.fraud?.revocationCount ?? 0}
             </div>
             <p className="text-xs text-green-600/80 mt-1">Admin Revocation Overrides</p>
           </CardContent>
@@ -190,10 +190,10 @@ export default function NetworkAnalytics() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {data.fraud.suspiciousOrgsDetails.length === 0 ? (
+              {(data?.fraud?.suspiciousOrgsDetails?.length ?? 0) === 0 ? (
                 <div className="text-center py-8 text-gray-500">No suspicious activity detected.</div>
               ) : (
-                data.fraud.suspiciousOrgsDetails.map((org, i) => (
+                data?.fraud?.suspiciousOrgsDetails?.map((org, i) => (
                   <div key={i} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-100 dark:border-gray-800">
                     <div>
                       <div className="text-sm font-bold truncate max-w-[200px]">{org._id}</div>

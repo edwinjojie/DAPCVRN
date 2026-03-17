@@ -75,15 +75,21 @@ router.get("/orgs", async (req, res) => {
       .sort({ createdAt: -1 })
       .lean();
 
-    // Enhance orgs with member count and issuance stats if not already in schema stats
+    // Enhance orgs with member count, issuance stats, and risk data
     const enhancedOrgs = await Promise.all(orgs.map(async (org) => {
       const memberCount = await User.countDocuments({ organizationId: org._id });
-      const credentialsCount = await Credential.countDocuments({ issuerId: org._id });
+      const credentialsCount = await Credential.countDocuments({ institutionId: org._id });
+      
+      // Calculate rejection rate for risk scoring
+      const totalVerifications = await VerificationRequest.countDocuments({ institutionId: org._id });
+      const rejectedVerifications = await VerificationRequest.countDocuments({ institutionId: org._id, status: 'rejected' });
+      const rejectionRate = totalVerifications > 0 ? (rejectedVerifications / totalVerifications) * 100 : 0;
       
       return {
         ...org,
         memberCount,
-        credentialsCount
+        credentialsCount,
+        rejectionRate
       };
     }));
 

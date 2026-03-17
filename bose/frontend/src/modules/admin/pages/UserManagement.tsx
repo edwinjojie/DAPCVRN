@@ -68,7 +68,7 @@ export default function UserManagement() {
         <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800 shadow-sm">
           <UsersIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
           <span className="text-sm font-semibold text-blue-800 dark:text-blue-300">
-            {users.length} Total Users
+            {users?.length ?? 0} Total Users
           </span>
         </div>
       </div>
@@ -127,7 +127,7 @@ export default function UserManagement() {
                   <tr>
                     <td colSpan={6} className="px-6 py-10 text-center text-gray-500">Loading users...</td>
                   </tr>
-                ) : users.length === 0 ? (
+                ) : !users || users.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-10 text-center text-gray-500">No users found matching your criteria.</td>
                   </tr>

@@ -24,7 +24,7 @@ export function useNetworkAnalytics() {
   const fetchAnalytics = async () => {
     setLoading(true);
     try {
-      const res = await api.get("/api/admin/analytics/detailed");
+      const res = await api.get("/admin/analytics/detailed");
       setData(res.data.data);
     } catch (error) {
       console.error("Error fetching detailed analytics:", error);

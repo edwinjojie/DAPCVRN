@@ -22,6 +22,7 @@ export default function UploadCredits({ onUploadSuccess }: UploadCreditsProps) {
         name: '',
         type: 'certification',
         institutionId: '',
+        institutionName: '',
         issueDate: '',
         description: '',
         publicShare: true,
@@ -89,6 +90,7 @@ export default function UploadCredits({ onUploadSuccess }: UploadCreditsProps) {
         formData.append('name', certificateDetails.name);
         formData.append('type', certificateDetails.type);
         formData.append('institutionId', certificateDetails.institutionId || 'manual');
+        formData.append('institution', certificateDetails.institutionName || 'manual');
         formData.append('issueDate', certificateDetails.issueDate);
         formData.append('description', certificateDetails.description);
 
@@ -100,7 +102,7 @@ export default function UploadCredits({ onUploadSuccess }: UploadCreditsProps) {
             setUploadModalOpen(false);
             setSelectedFile(null);
             setCertificateDetails({
-                name: '', type: 'certification', institutionId: '', issueDate: '', description: '', publicShare: true, verificationShare: true
+                name: '', type: 'certification', institutionId: '', institutionName: '', issueDate: '', description: '', publicShare: true, verificationShare: true
             });
             onUploadSuccess();
         } catch (error) {
@@ -130,11 +132,12 @@ export default function UploadCredits({ onUploadSuccess }: UploadCreditsProps) {
                         </p>
                         <div className="relative">
                             <input type="file" id="file-upload" className="hidden" onChange={handleChange} accept=".pdf,image/*" />
-                            <label htmlFor="file-upload">
-                                <Button className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-6 text-lg shadow-lg shadow-blue-200 cursor-pointer pointer-events-auto" asChild>
-                                    <span><FileText className="w-5 h-5 mr-2" /> Browse Files</span>
-                                </Button>
-                            </label>
+                            <Button 
+                                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-6 text-lg shadow-lg shadow-blue-200 cursor-pointer pointer-events-auto" 
+                                onClick={() => document.getElementById('file-upload')?.click()}
+                            >
+                                <FileText className="w-5 h-5 mr-2" /> Browse Files
+                            </Button>
                         </div>
                     </>
                 )}
@@ -195,7 +198,14 @@ export default function UploadCredits({ onUploadSuccess }: UploadCreditsProps) {
                                     <select
                                         className="w-full mt-1 p-2 border rounded-md"
                                         value={certificateDetails.institutionId}
-                                        onChange={e => setCertificateDetails({ ...certificateDetails, institutionId: e.target.value })}
+                                        onChange={e => {
+                                            const inst = institutions.find(i => i.id === e.target.value);
+                                            setCertificateDetails({ 
+                                                ...certificateDetails, 
+                                                institutionId: e.target.value,
+                                                institutionName: inst ? inst.name : (e.target.value === 'manual' ? 'manual' : '')
+                                            });
+                                        }}
                                     >
                                         <option value="">Select Institution...</option>
                                         {institutions.map(inst => <option key={inst.id} value={inst.id}>{inst.name}</option>)}

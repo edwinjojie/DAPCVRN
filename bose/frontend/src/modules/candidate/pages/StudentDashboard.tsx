@@ -55,7 +55,7 @@ export default function StudentDashboard() {
     // Load existing credentials
     const fetchCredentials = async () => {
       try {
-        const response = await api.get('/api/credentials/my');
+        const response = await api.get('/credentials/my');
         if (response.data) {
           setCertificates(response.data.map((c: any) => ({
             ...c,
@@ -188,7 +188,7 @@ export default function StudentDashboard() {
   // Callback to refresh certs after upload
   const handleUploadSuccess = async () => {
     try {
-      const response = await api.get('/api/credentials/my');
+      const response = await api.get('/credentials/my');
       if (response.data) {
         setCertificates(response.data.map((c: any) => ({
           ...c,

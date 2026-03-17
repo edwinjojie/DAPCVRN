@@ -23,7 +23,7 @@ export function useAdminLogs() {
   const fetchLogs = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get("/api/admin/logs");
+      const res = await api.get("/admin/logs");
       setLogs(res.data.data);
     } catch (error) {
       console.error("Error fetching logs:", error);

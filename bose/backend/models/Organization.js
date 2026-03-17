@@ -16,7 +16,7 @@ const organizationSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Organization type is required'],
     enum: {
-      values: ['institution', 'company', 'government', 'ngo', 'other'],
+      values: ['university', 'institution', 'company', 'government', 'ngo', 'other'],
       message: '{VALUE} is not a valid organization type'
     }
   },

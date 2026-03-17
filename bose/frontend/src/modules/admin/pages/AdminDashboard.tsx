@@ -2,17 +2,20 @@ import { useAdminSummary } from "../hooks/useAdminSummary";
 import OrgTable from "../components/OrgTable";
 import AdminActivityFeed from "../components/AdminActivityFeed";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
-import { Landmark, Users, Award, Shield, Network, Activity } from "lucide-react";
+import { Button } from "../../../components/ui/button";
+import { Landmark, Users, Award, Shield, Network, Activity, TrendingUp } from "lucide-react";
 import { useBlockchainOversight } from "../hooks/useBlockchainOversight";
+import { Link } from "react-router-dom";
 
 export default function AdminDashboard() {
   const { data, loading } = useAdminSummary();
   const { health } = useBlockchainOversight();
 
   const stats = [
-    { label: "Total Organizations", value: data?.organizations?.total, icon: Landmark, color: "text-blue-600" },
-    { label: "Network Users", value: data?.network?.totalUsers, icon: Users, color: "text-purple-600" },
-    { label: "Total Credentials", value: data?.network?.totalCredentials, icon: Award, color: "text-orange-600" },
+    { label: "Total Organizations", value: data?.organizations?.total ?? 0, icon: Landmark, color: "text-blue-600" },
+    { label: "Network Users", value: data?.network?.totalUsers ?? 0, icon: Users, color: "text-purple-600" },
+    { label: "Total Credentials", value: data?.network?.totalCredentials ?? 0, icon: Award, color: "text-orange-600" },
+    { label: "System Health", value: health?.status === 'UP' ? "Healthy" : "Degraded", icon: Activity, color: health?.status === 'UP' ? "text-green-600" : "text-red-600" },
   ];
 
   return (
@@ -23,19 +26,26 @@ export default function AdminDashboard() {
           <p className="text-gray-500 mt-1">Global management and monitoring of the Bose Network.</p>
         </div>
         
-        {/* Quick Blockchain Health */}
-        <div className={`flex items-center gap-3 px-4 py-2 rounded-xl border ${health?.status === 'UP' ? 'bg-green-50 border-green-100 text-green-700' : 'bg-red-50 border-red-100 text-red-700'}`}>
-          <div className="relative">
-            <Network className="h-5 w-5" />
-            <span className={`absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full border-2 border-white ${health?.status === 'UP' ? 'bg-green-500' : 'bg-red-500'} animate-pulse`}></span>
-          </div>
-          <div className="text-xs font-bold uppercase tracking-wider">
-            Blockchain {health?.status || 'OFFLINE'}
+        {/* Quick Actions */}
+        <div className="flex items-center gap-3">
+          <Link to="/dashboard/admin/analytics">
+            <Button variant="outline" size="sm" className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4" /> Network Intelligence
+            </Button>
+          </Link>
+          <div className={`flex items-center gap-3 px-4 py-2 rounded-xl border ${health?.status === 'UP' ? 'bg-green-50 border-green-100 text-green-700' : 'bg-red-50 border-red-100 text-red-700'}`}>
+            <div className="relative">
+              <Network className="h-5 w-5" />
+              <span className={`absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full border-2 border-white ${health?.status === 'UP' ? 'bg-green-500' : 'bg-red-500'} animate-pulse`}></span>
+            </div>
+            <div className="text-xs font-bold uppercase tracking-wider">
+              Blockchain {health?.status || 'OFFLINE'}
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {stats.map((stat, i) => (
           <Card key={i} className="border-none shadow-md bg-white dark:bg-gray-800/50">
             <CardHeader className="flex flex-row items-center justify-between pb-2">

@@ -9,7 +9,7 @@ export function useAdminSummary() {
     (async () => {
       setLoading(true);
       try {
-        const res = await api.get("/api/admin/summary");
+        const res = await api.get("/admin/summary");
         setData(res.data.data);
       } catch (error) {
         console.error("Error fetching admin summary:", error);

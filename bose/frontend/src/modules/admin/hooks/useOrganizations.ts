@@ -12,6 +12,7 @@ export interface Org {
   email: string;
   memberCount: number;
   credentialsCount: number;
+  rejectionRate?: number;
 }
 
 export function useOrganizations() {
@@ -22,7 +23,7 @@ export function useOrganizations() {
   const fetchOrgs = async () => {
     setLoading(true);
     try {
-      const res = await api.get("/api/admin/orgs");
+      const res = await api.get("/admin/orgs");
       setOrgs(res.data.data);
     } catch (error) {
       console.error("Error fetching organizations:", error);
@@ -38,7 +39,7 @@ export function useOrganizations() {
 
   const approveOrg = async (id: string) => {
     try {
-      await api.post(`/api/admin/orgs/${id}/approve`);
+      await api.post(`/admin/orgs/${id}/approve`);
       await fetchOrgs();
       toast({ title: "Organization approved", variant: "success" });
     } catch (error) {
@@ -48,7 +49,7 @@ export function useOrganizations() {
 
   const rejectOrg = async (id: string, reason: string) => {
     try {
-      await api.post(`/api/admin/orgs/${id}/reject`, { reason });
+      await api.post(`/admin/orgs/${id}/reject`, { reason });
       await fetchOrgs();
       toast({ title: "Organization rejected", variant: "success" });
     } catch (error) {
@@ -58,7 +59,7 @@ export function useOrganizations() {
 
   const suspendOrg = async (id: string) => {
     try {
-      await api.post(`/api/admin/orgs/${id}/suspend`);
+      await api.post(`/admin/orgs/${id}/suspend`);
       await fetchOrgs();
       toast({ title: "Organization suspended", variant: "success" });
     } catch (error) {
@@ -68,7 +69,7 @@ export function useOrganizations() {
 
   const reactivateOrg = async (id: string) => {
     try {
-      await api.post(`/api/admin/orgs/${id}/reactivate`);
+      await api.post(`/admin/orgs/${id}/reactivate`);
       await fetchOrgs();
       toast({ title: "Organization reactivated", variant: "success" });
     } catch (error) {
