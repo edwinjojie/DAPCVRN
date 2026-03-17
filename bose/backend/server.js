@@ -37,6 +37,8 @@ import publicRouter from './routes/public.js';
 // Blockchain routes
 import certificateRouter from './routes/certificate.js';
 import skillsRouter from './routes/skills.js';
+// AI Recommendation routes
+import aiRouter from './routes/recommendations.js';
 import path from 'path';
 
 dotenv.config();
@@ -168,6 +170,9 @@ app.use('/api/credentials', authenticateToken, credentialsRouter);
 app.use('/api/applications', authenticateToken, applicationsRouter);
 app.use('/api/university', authenticateToken, universityRouter);
 app.use('/api/ratings', authenticateToken, ratingsRouter);
+
+// AI Recommendation routes
+app.use('/api/ai', authenticateToken, aiRouter);
 
 // Blockchain routes
 app.use('/api/certificate', certificateRouter);

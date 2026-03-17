@@ -51,7 +51,19 @@ router.post('/upload', upload.single('certificate'), async (req, res) => {
 
     const fileHash = generateCertHash(file.buffer);
     const certId   = `CERT_${studentId}_${Date.now()}`;
-
+    // We pass admin role and identity here as default since it's an admin route
+    await fabricNetwork.addCertificate(
+      'admin', // User identity
+      'admin', // Role
+      certId,
+      studentId,
+      studentName,
+      course,
+      institution,
+      grade,
+      issueDate,
+      fileHash
+    );
     await BlockchainCertificate.create({
       certId,
       studentId,
@@ -105,6 +117,7 @@ router.post('/approve/:certId', async (req, res) => {
 
     await fabricNetwork.addCertificate(
       identity,
+      'institution', // Role
       cert.certId,
       cert.studentId,
       cert.studentName,

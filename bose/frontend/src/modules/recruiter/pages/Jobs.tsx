@@ -5,6 +5,7 @@ import { useJobs, Job } from '../hooks/useJobs';
 import JobFilterBar from '../components/JobFilterBar';
 import JobCard from '../components/JobCard';
 import JobEditorModal from '../components/JobEditorModal';
+import AICandidateSuggestions from '../components/AICandidateSuggestions';
 import { useToast } from '../../../components/ui/toast';
 
 export default function Jobs() {
@@ -14,6 +15,7 @@ export default function Jobs() {
   const [editorOpen, setEditorOpen] = useState(false);
   const [editing, setEditing] = useState<Job | null>(null);
   const [confirming, setConfirming] = useState<Job | null>(null);
+  const [aiJob, setAiJob] = useState<Job | null>(null);
 
   const filtered = useMemo(() => {
     return jobs.filter(j => {
@@ -54,6 +56,7 @@ export default function Jobs() {
                 job={job}
                 onEdit={(j) => { setEditing(j); setEditorOpen(true); }}
                 onDelete={(j) => setConfirming(j)}
+                onAISuggest={(j) => setAiJob(j)}
               />
             ))}
           </div>
@@ -102,6 +105,16 @@ export default function Jobs() {
             </Button>
           </CardContent>
         </Card>
+      )}
+
+      {/* AI Candidate Suggestions Modal */}
+      {aiJob && (
+        <AICandidateSuggestions
+          jobId={aiJob.id}
+          jobTitle={aiJob.title}
+          open={!!aiJob}
+          onOpenChange={(open) => { if (!open) setAiJob(null); }}
+        />
       )}
     </div>
   );
