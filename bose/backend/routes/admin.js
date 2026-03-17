@@ -1,9 +1,28 @@
 import express from "express";
-import { Organization, User, Credential, VerificationRequest } from "../models/index.js";
+import { Organization, User, Credential, VerificationRequest, AuditLog } from "../models/index.js";
 import { requireAdmin } from "../middleware/roleMiddleware.js";
 import * as blockchainService from "../services/blockchainService.js";
 
 const router = express.Router();
+
+// Helper for logging admin actions
+async function logAdminAction(req, action, targetType, targetId, targetName, reason = null, details = {}) {
+  try {
+    await AuditLog.create({
+      adminId: req.user._id,
+      adminName: req.user.name,
+      action,
+      targetType,
+      targetId: targetId.toString(),
+      targetName,
+      reason,
+      details,
+      ipAddress: req.ip || req.connection.remoteAddress
+    });
+  } catch (err) {
+    console.error("Audit logging failed:", err);
+  }
+}
 
 // Apply requireAdmin middleware to all routes
 router.use(requireAdmin);
@@ -116,6 +135,7 @@ router.post("/orgs/:id/approve", async (req, res) => {
     org.rejectionReason = null; // Clear if previously rejected
 
     await org.save();
+    await logAdminAction(req, 'APPROVE_ORG', 'ORGANIZATION', org._id, org.name);
     res.json({ success: true, message: "Organization approved successfully" });
   } catch (err) {
     console.error("Error approving organization:", err);
@@ -141,6 +161,7 @@ router.post("/orgs/:id/reject", async (req, res) => {
     org.isActive = false;
 
     await org.save();
+    await logAdminAction(req, 'REJECT_ORG', 'ORGANIZATION', org._id, org.name, reason);
     res.json({ success: true, message: "Organization rejected successfully" });
   } catch (err) {
     console.error("Error rejecting organization:", err);
@@ -161,6 +182,7 @@ router.post("/orgs/:id/suspend", async (req, res) => {
     org.isActive = false;
 
     await org.save();
+    await logAdminAction(req, 'SUSPEND_ORG', 'ORGANIZATION', org._id, org.name);
     res.json({ success: true, message: "Organization suspended successfully" });
   } catch (err) {
     console.error("Error suspending organization:", err);
@@ -181,6 +203,7 @@ router.post("/orgs/:id/reactivate", async (req, res) => {
     org.isActive = true;
 
     await org.save();
+    await logAdminAction(req, 'REACTIVATE_ORG', 'ORGANIZATION', org._id, org.name);
     res.json({ success: true, message: "Organization reactivated successfully" });
   } catch (err) {
     console.error("Error reactivating organization:", err);
@@ -260,7 +283,7 @@ router.post("/users/:id/ban", async (req, res) => {
     user.status = 'banned';
     user.isActive = false;
     await user.save();
-
+    await logAdminAction(req, 'BAN_USER', 'USER', user._id, user.name);
     res.json({ success: true, message: "User banned successfully" });
   } catch (err) {
     console.error("Error banning user:", err);
@@ -280,7 +303,7 @@ router.post("/users/:id/unban", async (req, res) => {
     user.status = 'active';
     user.isActive = true;
     await user.save();
-
+    await logAdminAction(req, 'UNBAN_USER', 'USER', user._id, user.name);
     res.json({ success: true, message: "User unbanned successfully" });
   } catch (err) {
     console.error("Error unbanning user:", err);
@@ -301,9 +324,10 @@ router.post("/users/:id/role", async (req, res) => {
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ error: "User not found" });
 
+    const oldRole = user.role;
     user.role = role;
     await user.save();
-
+    await logAdminAction(req, 'ROLE_CHANGE', 'USER', user._id, user.name, null, { from: oldRole, to: role });
     res.json({ success: true, message: "User role updated successfully" });
   } catch (err) {
     console.error("Error updating user role:", err);
@@ -391,6 +415,7 @@ router.post("/credentials/:id/revoke", async (req, res) => {
     }
 
     await cred.save();
+    await logAdminAction(req, 'REVOKE_CREDENTIAL', 'CREDENTIAL', cred._id, cred.title, reason);
     res.json({ 
       success: true, 
       message: "Credential revoked successfully", 
@@ -481,6 +506,155 @@ router.get("/analytics/detailed", async (req, res) => {
   } catch (err) {
     console.error("Error in detailed analytics:", err);
     res.status(500).json({ error: "Failed to fetch detailed analytics" });
+  }
+});
+
+// ==================== BLOCKCHAIN OVERSIGHT (Phase 5) ====================
+
+/**
+ * @route   GET /api/admin/blockchain/health
+ * @desc    Get blockchain network status and metrics
+ */
+router.get("/blockchain/health", async (req, res) => {
+  try {
+    // In a real Hyperledger Fabric setup, you'd query the peer for actual status.
+    // For this implementation, we check if the blockchain service is reachable.
+    let status = 'UP';
+    let latency = 0;
+    
+    try {
+      const start = Date.now();
+      // Assume blockchain service has a health or simple GET route
+      await blockchainService.verifyCredential('ping-check');
+      latency = Date.now() - start;
+    } catch (err) {
+      status = 'DOWN';
+    }
+
+    // Aggregating transaction success rate from local records
+    const totalTx = await Credential.countDocuments({ blockchainTxId: { $exists: true } });
+    const failedTx = await Credential.countDocuments({ status: 'pending', blockchainTxId: null });
+
+    res.json({
+      success: true,
+      data: {
+        status,
+        latency: `${latency}ms`,
+        peers: [
+          { name: 'peer0.org1.bose.com', status: status === 'UP' ? 'Running' : 'Offline', role: 'Endorser' },
+          { name: 'orderer.bose.com', status: status === 'UP' ? 'Running' : 'Offline', role: 'Orderer' }
+        ],
+        metrics: {
+          totalTransactions: totalTx,
+          successRate: totalTx > 0 ? ((totalTx / (totalTx + failedTx)) * 100).toFixed(1) + '%' : '100%'
+        }
+      }
+    });
+  } catch (err) {
+    console.error("Error in blockchain health:", err);
+    res.status(500).json({ error: "Failed to fetch blockchain health" });
+  }
+});
+
+/**
+ * @route   GET /api/admin/blockchain/transactions
+ * @desc    Get recent blockchain transactions
+ */
+router.get("/blockchain/transactions", async (req, res) => {
+  try {
+    const transactions = await Credential.find({ blockchainTxId: { $ne: null } })
+      .select('title studentName institution issueDate blockchainTxId status updatedAt')
+      .sort({ updatedAt: -1 })
+      .limit(50)
+      .lean();
+
+    res.json({
+      success: true,
+      data: transactions
+    });
+  } catch (err) {
+    console.error("Error in blockchain transactions:", err);
+    res.status(500).json({ error: "Failed to fetch blockchain transactions" });
+  }
+});
+
+/**
+ * @route   POST /api/admin/blockchain/verify-manual
+ * @desc    Manually verify a credential against the blockchain
+ */
+router.post("/blockchain/verify-manual", async (req, res) => {
+  try {
+    const { credentialId } = req.body;
+    if (!credentialId) return res.status(400).json({ error: "Credential ID is required" });
+
+    const result = await blockchainService.verifyCredential(credentialId);
+    
+    await logAdminAction(req, 'MANUAL_VERIFY', 'CREDENTIAL', credentialId, 'Manual Blockchain Check');
+
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (err) {
+    console.error("Error in manual verification:", err);
+    res.status(500).json({ error: "Blockchain verification failed" });
+  }
+});
+
+/**
+ * @route   POST /api/admin/blockchain/retry/:id
+ * @desc    Retry a failed blockchain anchor transaction
+ */
+router.post("/blockchain/retry/:id", async (req, res) => {
+  try {
+    const cred = await Credential.findById(req.params.id);
+    if (!cred) return res.status(404).json({ error: "Credential not found" });
+    if (cred.blockchainTxId) return res.status(400).json({ error: "Already anchored to blockchain" });
+
+    try {
+      const bcResponse = await blockchainService.addCertificate({
+        credentialId: cred.credentialId || cred._id.toString(),
+        studentId: cred.studentId || cred.userId.toString(),
+        institution: cred.institution,
+        credentialHash: cred.dataHash || cred.credentialHash,
+        issueDate: cred.issueDate
+      });
+
+      cred.blockchainTxId = bcResponse.txId;
+      await cred.save();
+
+      await logAdminAction(req, 'RETRY_BLOCKCHAIN', 'CREDENTIAL', cred._id, cred.title, 'Manual Admin Retry');
+
+      res.json({ success: true, message: "Blockchain anchor successful", txId: bcResponse.txId });
+    } catch (bcError) {
+      res.status(500).json({ error: "Blockchain retry failed", details: bcError.message });
+    }
+  } catch (err) {
+    console.error("Error in retry blockchain:", err);
+    res.status(500).json({ error: "Internal server error during retry" });
+  }
+});
+
+// ==================== SYSTEM LOGS (Phase 7) ====================
+
+/**
+ * @route   GET /api/admin/logs
+ * @desc    Get administrative audit logs
+ */
+router.get("/logs", async (req, res) => {
+  try {
+    const logs = await AuditLog.find()
+      .sort({ timestamp: -1 })
+      .limit(100)
+      .lean();
+
+    res.json({
+      success: true,
+      data: logs
+    });
+  } catch (err) {
+    console.error("Error fetching logs:", err);
+    res.status(500).json({ error: "Failed to fetch audit logs" });
   }
 });
 

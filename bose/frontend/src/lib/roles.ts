@@ -100,6 +100,7 @@ export const SIDEBAR_LINKS: Record<RoleKey, SidebarLink[]> = {
     { name: 'Dashboard', href: '/dashboard/admin' },
     { name: 'User Management', href: '/dashboard/admin/users' },
     { name: 'Credentials', href: '/dashboard/admin/credentials' },
+    { name: 'Blockchain', href: '/dashboard/admin/blockchain' },
     { name: 'Analytics', href: '/dashboard/admin/analytics' },
   ],
   auditor: [

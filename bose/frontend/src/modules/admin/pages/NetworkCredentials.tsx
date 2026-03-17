@@ -14,7 +14,8 @@ import {
   Eye, 
   Ban, 
   ExternalLink,
-  Info
+  Info,
+  RefreshCcw
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -40,7 +41,21 @@ export default function NetworkCredentials() {
     if (revokingId && revocationReason) {
       await revokeCredential(revokingId, revocationReason);
       setRevokingId(null);
-      setRevocationReason("");
+      setReason("");
+    }
+  };
+
+  const handleRetryBlockchain = async (id: string) => {
+    try {
+      await api.post(`/api/admin/blockchain/retry/${id}`);
+      toast({ title: "Retry Successful", description: "Credential anchored to blockchain.", variant: "success" });
+      refresh();
+    } catch (error: any) {
+      toast({ 
+        title: "Retry Failed", 
+        description: error.response?.data?.error || "Blockchain connection error.", 
+        variant: "error" 
+      });
     }
   };
 
@@ -168,6 +183,16 @@ export default function NetworkCredentials() {
                             onClick={() => setRevokingId(cred._id)}
                           >
                             <Ban className="h-4 w-4 mr-1" /> Revoke
+                          </Button>
+                        )}
+                        {!cred.blockchainTxId && cred.status !== 'revoked' && (
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="text-orange-600 border-orange-200 hover:bg-orange-50"
+                            onClick={() => handleRetryBlockchain(cred._id)}
+                          >
+                            <RefreshCcw className="h-4 w-4 mr-1" /> Retry Anchor
                           </Button>
                         )}
                         {cred.blockchainTxId && (
