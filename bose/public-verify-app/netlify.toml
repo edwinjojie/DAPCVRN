@@ -1,0 +1,15 @@
+[build]
+  # The directory where the portfolio app is located
+  base = "public-verify-app"
+  
+  # The command to run to build the app
+  command = "npm install && npm run build"
+  
+  # The directory that contains the build output (relative to base)
+  publish = "dist"
+
+[[redirects]]
+  # This ensures that React Router handles all paths correctly on Netlify
+  from = "/*"
+  to = "/index.html"
+  status = 200
