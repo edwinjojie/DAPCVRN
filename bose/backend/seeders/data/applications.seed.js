@@ -9,11 +9,7 @@ export const applicationsData = [
     candidateName: 'Alice Johnson',
     candidateEmail: 'alice.johnson@student.edu',
     coverLetter: 'I am excited to apply for the Senior Software Engineer - Machine Learning position at Google. With my Bachelor\'s degree in Computer Science from MIT and specialized training in Machine Learning, I am confident in my ability to contribute to your ML team.',
-    resume: {
-      filename: 'alice_johnson_resume.pdf',
-      url: '/uploads/resumes/alice_johnson_resume.pdf',
-      uploadedAt: new Date('2024-01-10T10:00:00Z')
-    },
+    resume: '/uploads/resumes/alice_johnson_resume.pdf',
     attachedCredentials: [
       {
         credentialId: null, // Will be set to CRED-001 ObjectId
@@ -83,11 +79,7 @@ export const applicationsData = [
     candidateName: 'Bob Smith',
     candidateEmail: 'bob.smith@student.edu',
     coverLetter: 'I am writing to express my interest in the Software Development Engineer - AI position at Microsoft. My Master\'s degree in AI from Stanford and AWS certification make me a strong fit for this role.',
-    resume: {
-      filename: 'bob_smith_resume.pdf',
-      url: '/uploads/resumes/bob_smith_resume.pdf',
-      uploadedAt: new Date('2024-01-08T15:00:00Z')
-    },
+    resume: '/uploads/resumes/bob_smith_resume.pdf',
     attachedCredentials: [
       {
         credentialId: null, // CRED-003
@@ -159,11 +151,7 @@ export const applicationsData = [
     candidateName: 'Carol White',
     candidateEmail: 'carol.white@student.edu',
     coverLetter: 'I am thrilled to apply for the Data Scientist position at Google. My degree in Data Science from Harvard has equipped me with the skills needed for this role.',
-    resume: {
-      filename: 'carol_white_resume.pdf',
-      url: '/uploads/resumes/carol_white_resume.pdf',
-      uploadedAt: new Date('2024-01-11T09:00:00Z')
-    },
+    resume: '/uploads/resumes/carol_white_resume.pdf',
     attachedCredentials: [
       {
         credentialId: null, // CRED-005
@@ -212,11 +200,7 @@ export const applicationsData = [
     candidateName: 'David Brown',
     candidateEmail: 'david.brown@student.edu',
     coverLetter: 'I am applying for the DevOps Engineer position at Amazon. My background in Electrical Engineering and IoT systems provides a unique perspective for infrastructure management.',
-    resume: {
-      filename: 'david_brown_resume.pdf',
-      url: '/uploads/resumes/david_brown_resume.pdf',
-      uploadedAt: new Date('2024-01-09T11:00:00Z')
-    },
+    resume: '/uploads/resumes/david_brown_resume.pdf',
     attachedCredentials: [
       {
         credentialId: null, // CRED-006
@@ -257,11 +241,7 @@ export const applicationsData = [
     candidateName: 'Grace Wilson',
     candidateEmail: 'grace.wilson@student.edu',
     coverLetter: 'I am excited to apply for the Security Engineer position at Meta. My degree in Cybersecurity from Stanford makes me an ideal candidate for this role.',
-    resume: {
-      filename: 'grace_wilson_resume.pdf',
-      url: '/uploads/resumes/grace_wilson_resume.pdf',
-      uploadedAt: new Date('2024-01-12T13:00:00Z')
-    },
+    resume: '/uploads/resumes/grace_wilson_resume.pdf',
     attachedCredentials: [
       {
         credentialId: null, // CRED-010
@@ -315,11 +295,7 @@ export const applicationsData = [
     candidateName: 'Emma Davis',
     candidateEmail: 'emma.davis@student.edu',
     coverLetter: 'I am interested in the Cloud Solutions Architect position.',
-    resume: {
-      filename: 'emma_davis_resume.pdf',
-      url: '/uploads/resumes/emma_davis_resume.pdf',
-      uploadedAt: new Date('2024-01-07T10:00:00Z')
-    },
+    resume: '/uploads/resumes/emma_davis_resume.pdf',
     attachedCredentials: [
       {
         credentialId: null, // CRED-008
@@ -362,11 +338,7 @@ export const applicationsData = [
     candidateName: 'Frank Miller',
     candidateEmail: 'frank.miller@student.edu',
     coverLetter: 'I am applying for the Product Manager - AI position. My MBA from MIT with technology focus makes me a great fit.',
-    resume: {
-      filename: 'frank_miller_resume.pdf',
-      url: '/uploads/resumes/frank_miller_resume.pdf',
-      uploadedAt: new Date('2024-01-05T14:00:00Z')
-    },
+    resume: '/uploads/resumes/frank_miller_resume.pdf',
     attachedCredentials: [
       {
         credentialId: null, // CRED-009
