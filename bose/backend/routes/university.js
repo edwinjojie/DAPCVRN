@@ -218,7 +218,7 @@ router.get('/credentials/issued', requireUniversity, async (req, res) => {
     if (req.user && req.user.organization) {
       query.organization = req.user.organization;
     } else if (req.user && (req.user.userId || req.user._id)) {
-      query.issuerId = req.user.userId || req.user._id;
+      query.verifiedBy = req.user.userId || req.user._id;
     }
 
     if (type) query.type = type;

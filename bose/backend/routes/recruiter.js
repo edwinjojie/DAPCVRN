@@ -14,7 +14,7 @@ router.use(requireRecruiter);
 // 2.1 Dashboard API (REPLACE MOCK)
 router.get('/dashboard', async (req, res) => {
   try {
-    const recruiterId = req.user._id;
+    const recruiterId = req.user.userId || req.user._id;
 
     // totalJobs = count(Job where recruiterId) (Using employerId since that is the generic owner, or createdBy if we fully migrate to it)
     const totalJobs = await Job.countDocuments({ $or: [{ createdBy: recruiterId }, { employerId: recruiterId }] });
@@ -84,6 +84,25 @@ router.get('/candidates', async (req, res) => {
   }
 });
 
+// 2.3 Get All Applicants for Recruiter
+router.get('/applications', async (req, res) => {
+  try {
+    const recruiterId = req.user.userId || req.user._id;
+
+    const applications = await Application.find({ recruiterId })
+        .populate('candidateId', '-password -__v')
+        .populate('jobId', 'title');
+
+    res.json({
+        success: true,
+        applications
+    });
+  } catch (error) {
+    console.error('Error fetching all applicants:', error);
+    res.status(500).json({ error: 'Failed to fetch applicants' });
+  }
+});
+
 // 2.4 Get Applicants for Job
 router.get('/jobs/:jobId/applicants', async (req, res) => {
   try {
@@ -125,7 +144,7 @@ router.put('/applications/:id/status', async (req, res) => {
     application.timeline.push({
         status: status,
         timestamp: new Date(),
-        updatedBy: req.user._id
+        updatedBy: req.user.userId || req.user._id
     });
 
     await application.save();
@@ -138,7 +157,7 @@ router.put('/applications/:id/status', async (req, res) => {
         message: `Your application status has been updated to ${status}`,
         relatedApplication: application._id,
         relatedJob: application.jobId,
-        relatedUser: req.user._id
+        relatedUser: req.user.userId || req.user._id
     });
 
     res.json({
@@ -160,7 +179,8 @@ router.post('/verify/:applicationId', async (req, res) => {
     const application = await Application.findById(applicationId).populate('candidateId');
     if (!application) return res.status(404).json({ error: 'Application not found' });
     
-    if (application.recruiterId && application.recruiterId.toString() !== req.user._id.toString()) {
+    const recruiterId = req.user.userId || req.user._id;
+    if (application.recruiterId && application.recruiterId.toString() !== recruiterId.toString()) {
       return res.status(403).json({ error: 'Not authorized for this application' });
     }
 
@@ -176,7 +196,7 @@ router.post('/verify/:applicationId', async (req, res) => {
         title: 'Credentials Verified',
         message: `Your candidate credentials have been blockchain-verified by a recruiter.`,
         relatedApplication: application._id,
-        relatedUser: req.user._id
+        relatedUser: recruiterId
     });
 
     res.json({

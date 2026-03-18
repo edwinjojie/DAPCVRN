@@ -19,6 +19,7 @@ export default function ApplicantTable({ data, onUpdate }: Props) {
           <tr>
             <th className="p-3">Name</th>
             <th className="p-3">Email</th>
+            <th className="p-3">Job Posting</th>
             <th className="p-3">Applied</th>
             <th className="p-3">Status</th>
             <th className="p-3">Actions</th>

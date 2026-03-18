@@ -9,7 +9,7 @@ const router = express.Router();
 async function logAdminAction(req, action, targetType, targetId, targetName, reason = null, details = {}) {
   try {
     await AuditLog.create({
-      adminId: req.user._id,
+      adminId: req.user.userId || req.user._id,
       adminName: req.user.name,
       action,
       targetType,
@@ -135,7 +135,7 @@ router.post("/orgs/:id/approve", async (req, res) => {
 
     org.status = 'approved';
     org.approved = true;
-    org.approvedBy = req.user._id;
+    org.approvedBy = req.user.userId || req.user._id;
     org.approvedAt = new Date();
     org.isActive = true;
     org.rejectionReason = null; // Clear if previously rejected
@@ -403,7 +403,7 @@ router.post("/credentials/:id/revoke", async (req, res) => {
     cred.status = 'revoked';
     cred.revocationReason = reason;
     cred.revokedAt = new Date();
-    cred.revokedBy = req.user._id;
+    cred.revokedBy = req.user.userId || req.user._id;
 
     // Revoke on blockchain if anchored
     let blockchainRevocation = { status: 'not_anchored' };

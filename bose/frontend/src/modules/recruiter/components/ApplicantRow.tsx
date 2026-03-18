@@ -19,6 +19,7 @@ export default function ApplicantRow({ applicant, onUpdate }: Props) {
     <tr className="border-b border-gray-200 hover:bg-gray-50 transition">
       <td className="p-3">{applicant.name}</td>
       <td className="p-3 text-gray-500">{applicant.email}</td>
+      <td className="p-3 text-gray-500 font-medium text-blue-600">{applicant.jobTitle || 'Unknown Job'}</td>
       <td className="p-3 text-gray-500">{new Date(applicant.appliedAt).toLocaleDateString()}</td>
       <td className="p-3">
         <span className={`px-2 py-1 text-xs rounded-full ${badgeColors[applicant.status]}`}>
