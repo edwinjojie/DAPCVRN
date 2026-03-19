@@ -10,8 +10,7 @@ export default function Applicants() {
   useEffect(() => {
     const fetchJobs = async () => {
       try {
-        const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-        const res = await api.get(`${baseUrl}/api/jobs/my`);
+        const res = await api.get(`/jobs/my`);
         setJobs(res.data || []);
       } catch (error) {
         console.error('Failed to fetch jobs', error);

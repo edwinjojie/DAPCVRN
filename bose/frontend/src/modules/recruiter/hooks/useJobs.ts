@@ -21,7 +21,7 @@ export function useJobs() {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get(`${baseUrl}/api/jobs/my`);
+      const res = await api.get(`/jobs/my`);
       const list = Array.isArray(res.data) ? res.data : [];
       const normalized: Job[] = list.map((j: any) => ({
         id: j.id || j._id,
@@ -38,26 +38,26 @@ export function useJobs() {
     } finally {
       setLoading(false);
     }
-  }, [baseUrl]);
+  }, []);
 
   useEffect(() => {
     fetchJobs();
   }, [fetchJobs]);
 
   const createJob = async (payload: Partial<Job>) => {
-    const res = await api.post(`${baseUrl}/api/jobs`, payload);
+    const res = await api.post(`/jobs`, payload);
     await fetchJobs();
     return res.data;
   };
 
   const updateJob = async (id: string, payload: Partial<Job>) => {
-    const res = await api.put(`${baseUrl}/api/jobs/${encodeURIComponent(id)}`, payload);
+    const res = await api.put(`/jobs/${encodeURIComponent(id)}`, payload);
     await fetchJobs();
     return res.data;
   };
 
   const deleteJob = async (id: string) => {
-    await api.delete(`${baseUrl}/api/jobs/${encodeURIComponent(id)}`);
+    await api.delete(`/jobs/${encodeURIComponent(id)}`);
     await fetchJobs();
   };
 

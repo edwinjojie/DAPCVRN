@@ -23,13 +23,12 @@ export function useApplicants(jobId?: string) {
     try {
       setLoading(true);
       setError(null);
-      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
       
       let endpoint = '';
       if (jobId === 'all' || !jobId) {
-        endpoint = `${baseUrl}/api/recruiter/applications`;
+        endpoint = `/recruiter/applications`;
       } else {
-        endpoint = `${baseUrl}/api/recruiter/jobs/${encodeURIComponent(jobId)}/applicants`;
+        endpoint = `/recruiter/jobs/${encodeURIComponent(jobId)}/applicants`;
       }
 
       const res = await api.get(endpoint);

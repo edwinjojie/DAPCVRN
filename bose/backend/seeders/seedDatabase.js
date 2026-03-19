@@ -293,6 +293,7 @@ async function seedApplications() {
       
       data.jobId = createdDocs.jobs[mapping.job]?._id;
       data.candidateId = createdDocs.users[mapping.candidate]?._id;
+      data.recruiterId = createdDocs.users[mapping.recruiter]?._id;
       
       // Map attached credentials
       data.attachedCredentials = data.attachedCredentials.map((cred, index) => ({
