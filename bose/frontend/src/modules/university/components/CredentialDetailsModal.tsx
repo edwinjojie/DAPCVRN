@@ -1,6 +1,6 @@
 import React from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { X, Shield, User, Landmark, Calendar, Hash, CheckCircle, ExternalLink } from 'lucide-react';
+import { X, Shield, User, Landmark, Calendar, Hash, CheckCircle, ExternalLink, Eye, FileText } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { format } from 'date-fns';
@@ -61,6 +61,38 @@ export default function CredentialDetailsModal({ credential, onClose }: Credenti
                 <InfoItem icon={Calendar} label="Issue Date" value={format(new Date(credential.issueDate || credential.issuedAt), 'MMMM dd, yyyy')} />
                 <InfoItem icon={Hash} label="Credential ID" value={credential.credentialId || credential._id} />
               </div>
+
+              {/* Uploaded Document Review */}
+              {(credential.attachments?.length > 0 || credential.fileUrl) && (
+                <div className="space-y-3">
+                  <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Review Original Document</h4>
+                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-100 dark:border-blue-800 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+                        <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-gray-900 dark:text-gray-100">Certificate File</p>
+                        <p className="text-xs text-gray-500 italic">Review before approval</p>
+                      </div>
+                    </div>
+                    <Button 
+                      variant="default" 
+                      size="sm" 
+                      className="bg-blue-600 hover:bg-blue-700 text-white gap-2 shadow-lg shadow-blue-500/20"
+                      onClick={() => {
+                        const fileUrl = credential.fileUrl || credential.attachments[0].url;
+                        const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+                        const serverUrl = baseUrl.replace('/api', '');
+                        window.open(`${serverUrl}${fileUrl}`, '_blank');
+                      }}
+                    >
+                      <Eye className="h-4 w-4" />
+                      View PDF
+                    </Button>
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-3">
                 <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Blockchain Evidence</h4>

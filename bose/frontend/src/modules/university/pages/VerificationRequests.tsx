@@ -7,7 +7,7 @@ import RejectModal from '../components/RejectModal';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { format } from 'date-fns';
-import { Filter } from 'lucide-react';
+import { Filter, Eye } from 'lucide-react';
 
 export default function VerificationRequests() {
   const [page, setPage] = useState(1);
@@ -94,6 +94,21 @@ export default function VerificationRequests() {
       label: 'Actions',
       render: (id: string, row: any) => (
         <div className="flex gap-2">
+          {row.fileUrl && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+                const serverUrl = baseUrl.replace('/api', '');
+                window.open(`${serverUrl}${row.fileUrl}`, '_blank');
+              }}
+              title="View Certificate"
+            >
+              <Eye className="h-4 w-4 mr-1" />
+              View
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"

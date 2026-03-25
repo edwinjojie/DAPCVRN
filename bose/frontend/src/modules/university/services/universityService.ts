@@ -25,8 +25,10 @@ export interface VerificationRequest {
   certificateTitle: string;
   status: 'pending' | 'approved' | 'rejected';
   submittedAt: string;
+  fileUrl?: string; // Add this
   rejectionReason?: string;
   approvedAt?: string;
+  raw: any;
 }
 
 export interface IssuedCredential {

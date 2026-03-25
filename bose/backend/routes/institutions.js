@@ -70,6 +70,12 @@ router.get('/verification/requests', requireInstitution, async (req, res) => {
     const data = requests.map(r => {
       const cred = r.credentialId || {};
       const student = cred.userId || {};
+      
+      // Get the first attachment URL if available
+      const fileUrl = cred.attachments && cred.attachments.length > 0 
+        ? cred.attachments[0].url 
+        : null;
+
       return {
         _id: r._id,
         studentId: student._id || cred.userId,
@@ -78,6 +84,7 @@ router.get('/verification/requests', requireInstitution, async (req, res) => {
         certificateTitle: cred.title || cred.credentialTitle || null,
         status: r.status,
         submittedAt: r.createdAt,
+        fileUrl: fileUrl, // Include the file URL
         rejectionReason: r.status === 'rejected' ? (r.notes || null) : undefined,
         approvedAt: r.status === 'approved' ? r.updatedAt : undefined,
       };
