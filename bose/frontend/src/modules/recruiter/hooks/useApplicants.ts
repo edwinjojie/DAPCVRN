@@ -4,6 +4,7 @@ import { useToast } from '../../../components/ui/toast';
 
 export interface Applicant {
   id: string;
+  candidateId: string;
   jobId: string;
   jobTitle?: string;
   name: string;
@@ -35,6 +36,7 @@ export function useApplicants(jobId?: string) {
       
       const mappedApplicants = (res.data.applications || []).map((app: any) => ({
         id: app._id || app.id,
+        candidateId: app.candidateId?._id || app.candidateId,
         jobId: app.jobId?._id || app.jobId,
         jobTitle: app.jobId?.title || 'Unknown Job',
         name: app.candidateName || app.candidateId?.name || 'Unknown',

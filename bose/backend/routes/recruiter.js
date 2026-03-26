@@ -3,6 +3,9 @@ import Job from '../models/Job.js';
 import Application from '../models/Application.js';
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
+import Message from '../models/Message.js';
+import Interview from '../models/Interview.js';
+import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcryptjs';
 import { requireRecruiter } from '../middleware/auth.js';
 
@@ -344,7 +347,120 @@ router.get('/jobs/:jobId/recommendations', async (req, res) => {
     });
   } catch (error) {
     console.error('Error getting recommendations:', error);
-    res.status(500).json({ error: 'Failed to generate recommendations' });
+    res.status(500).json({ error: 'Failed to get recommendations' });
+  }
+});
+
+// 4.1 Direct Inquiry Messaging
+router.post('/messages/send', async (req, res) => {
+  try {
+    const { recipientId, content, subject, relatedJob, relatedApplication } = req.body;
+    const senderId = req.user.userId || req.user._id;
+
+    if (!recipientId || !content) {
+      return res.status(400).json({ error: 'Recipient and content are required' });
+    }
+
+    const recipient = await User.findById(recipientId);
+    if (!recipient) return res.status(404).json({ error: 'Recipient not found' });
+
+    const sender = await User.findById(senderId);
+    if (!sender) return res.status(404).json({ error: 'Sender not found' });
+
+    const message = new Message({
+      messageId: uuidv4(),
+      conversationId: [senderId, recipientId].sort().join('_'),
+      senderId,
+      senderName: sender.name,
+      recipientId,
+      recipientName: recipient.name,
+      subject: subject || 'Inquiry regarding your application',
+      content,
+      relatedJob,
+      relatedApplication
+    });
+
+    await message.save();
+
+    // Notify the candidate
+    await Notification.createNotification({
+      userId: recipientId,
+      type: 'new_message',
+      title: 'New Message from Recruiter',
+      message: `${sender.name} sent you a message regarding your application.`,
+      relatedApplication,
+      relatedJob,
+      relatedUser: senderId
+    });
+
+    res.json({
+      success: true,
+      message: 'Message sent successfully',
+      data: message
+    });
+  } catch (error) {
+    console.error('Error sending message:', error);
+    res.status(500).json({ error: 'Failed to send message' });
+  }
+});
+
+// 4.2 Interview Scheduling
+router.post('/interviews/schedule', async (req, res) => {
+  try {
+    const { 
+      candidateId, 
+      jobId, 
+      applicationId, 
+      title, 
+      description, 
+      startTime, 
+      endTime, 
+      location, 
+      meetingLink 
+    } = req.body;
+    const recruiterId = req.user.userId || req.user._id;
+
+    if (!candidateId || !jobId || !applicationId || !startTime || !endTime) {
+      return res.status(400).json({ error: 'Missing required interview fields' });
+    }
+
+    const interview = new Interview({
+      recruiterId,
+      candidateId,
+      jobId,
+      applicationId,
+      title,
+      description,
+      startTime: new Date(startTime),
+      endTime: new Date(endTime),
+      location: location || 'Video Call',
+      meetingLink
+    });
+
+    await interview.save();
+
+    // Update application status to interviewed (optional but helpful)
+    await Application.findByIdAndUpdate(applicationId, { status: 'shortlisted' });
+
+    // Notify the candidate
+    await Notification.createNotification({
+      userId: candidateId,
+      type: 'interview_scheduled',
+      title: 'Interview Scheduled',
+      message: `An interview has been scheduled for "${title}" on ${new Date(startTime).toLocaleString()}.`,
+      relatedApplication: applicationId,
+      relatedJob: jobId,
+      relatedUser: recruiterId
+    });
+
+    res.json({
+      success: true,
+      message: 'Interview scheduled successfully',
+      data: interview
+    });
+  } catch (error) {
+    console.error('Error scheduling interview:', error);
+    res.status(500).json({ error: 'Failed to schedule interview' });
   }
 });
 

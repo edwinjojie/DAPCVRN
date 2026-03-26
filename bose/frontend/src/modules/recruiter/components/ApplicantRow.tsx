@@ -5,9 +5,11 @@ import ApplicantActions from './ApplicantActions';
 interface Props {
   applicant: Applicant;
   onUpdate: (id: string, status: Applicant['status']) => void;
+  onMessage: (applicant: Applicant) => void;
+  onSchedule: (applicant: Applicant) => void;
 }
 
-export default function ApplicantRow({ applicant, onUpdate }: Props) {
+export default function ApplicantRow({ applicant, onUpdate, onMessage, onSchedule }: Props) {
   const badgeColors: Record<Applicant['status'], string> = {
     applied: 'bg-gray-100 text-gray-800',
     shortlisted: 'bg-blue-100 text-blue-800',
@@ -17,17 +19,25 @@ export default function ApplicantRow({ applicant, onUpdate }: Props) {
 
   return (
     <tr className="border-b border-gray-200 hover:bg-gray-50 transition">
-      <td className="p-3">{applicant.name}</td>
+      <td className="p-3">
+        <div className="font-medium text-gray-900">{applicant.name}</div>
+        <div className="text-xs text-gray-400">ID: {applicant.candidateId.substring(0, 8)}...</div>
+      </td>
       <td className="p-3 text-gray-500">{applicant.email}</td>
       <td className="p-3 text-gray-500 font-medium text-blue-600">{applicant.jobTitle || 'Unknown Job'}</td>
       <td className="p-3 text-gray-500">{new Date(applicant.appliedAt).toLocaleDateString()}</td>
       <td className="p-3">
-        <span className={`px-2 py-1 text-xs rounded-full ${badgeColors[applicant.status]}`}>
+        <span className={`px-2 py-1 text-xs rounded-full capitalize ${badgeColors[applicant.status]}`}>
           {applicant.status}
         </span>
       </td>
       <td className="p-3">
-        <ApplicantActions applicant={applicant} onUpdate={onUpdate} />
+        <ApplicantActions 
+          applicant={applicant} 
+          onUpdate={onUpdate} 
+          onMessage={onMessage}
+          onSchedule={onSchedule}
+        />
       </td>
     </tr>
   );

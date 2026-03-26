@@ -5,9 +5,11 @@ import ApplicantRow from './ApplicantRow';
 interface Props {
   data: Applicant[];
   onUpdate: (id: string, status: Applicant['status']) => void;
+  onMessage: (applicant: Applicant) => void;
+  onSchedule: (applicant: Applicant) => void;
 }
 
-export default function ApplicantTable({ data, onUpdate }: Props) {
+export default function ApplicantTable({ data, onUpdate, onMessage, onSchedule }: Props) {
   if (!data.length) {
     return <div className="text-gray-500 text-center py-10">No applicants yet.</div>;
   }
@@ -22,12 +24,18 @@ export default function ApplicantTable({ data, onUpdate }: Props) {
             <th className="p-3">Job Posting</th>
             <th className="p-3">Applied</th>
             <th className="p-3">Status</th>
-            <th className="p-3">Actions</th>
+            <th className="p-3">Review & Actions</th>
           </tr>
         </thead>
         <tbody>
           {data.map((a) => (
-            <ApplicantRow key={a.id} applicant={a} onUpdate={onUpdate} />
+            <ApplicantRow 
+              key={a.id} 
+              applicant={a} 
+              onUpdate={onUpdate} 
+              onMessage={onMessage}
+              onSchedule={onSchedule}
+            />
           ))}
         </tbody>
       </table>

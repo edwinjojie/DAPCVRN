@@ -12,6 +12,7 @@ import Rating from './Rating.js';
 import BlockchainCertificate from './BlockchainCertificate.js';
 import BlockchainSkill from './BlockchainSkill.js';
 import AuditLog from './AuditLog.js';
+import Interview from './Interview.js';
 
 export {
   User,
@@ -26,7 +27,8 @@ export {
   VerificationRequest,
   BlockchainCertificate,
   BlockchainSkill,
-  AuditLog
+  AuditLog,
+  Interview
 };
 
 export default {
@@ -42,7 +44,8 @@ export default {
   VerificationRequest,
   BlockchainCertificate,
   BlockchainSkill,
-  AuditLog
+  AuditLog,
+  Interview
 };
 
 
