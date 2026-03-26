@@ -98,10 +98,14 @@ export const approveCredential = async (requestId: string, data?: { fileUrl?: st
 
 export const rejectCredential = async (requestId: string, reason: string, userRole?: string) => {
   const basePath = getApiBasePath(userRole || 'university');
-  const response = await api.post(
-    `${basePath}/verification/reject/${requestId}`,
-    { reason }
-  );
+  const response = await api.post(`${basePath}/verification/reject/${requestId}`, { reason });
+  return response.data;
+};
+
+// ===== BULK ISSUANCE =====
+export const bulkIssueCredentials = async (credentials: any[], userRole?: string) => {
+  const basePath = getApiBasePath(userRole || 'university');
+  const response = await api.post(`${basePath}/bulk-issue`, { credentials });
   return response.data;
 };
 

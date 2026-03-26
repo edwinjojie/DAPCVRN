@@ -457,6 +457,70 @@ router.get('/credentials/issued/:credentialId', requireUniversity, async (req, r
 // POST /api/university/issue-credential
 router.post('/issue-credential', requireUniversity, universityController.issueCredential);
 
+// POST /api/university/bulk-issue
+router.post('/bulk-issue', requireUniversity, async (req, res) => {
+  try {
+    const { credentials } = req.body;
+    if (!Array.isArray(credentials) || credentials.length === 0) {
+      return res.status(400).json({ error: 'Invalid or empty credentials list' });
+    }
+
+    const results = {
+      total: credentials.length,
+      success: 0,
+      failed: 0,
+      errors: []
+    };
+
+    // We'll process them in a loop, but in a real app, this might be a background job
+    for (const credData of credentials) {
+      try {
+        // Mock a request object for the controller
+        const mockReq = {
+          user: req.user,
+          body: credData
+        };
+        
+        // Use the existing issueCredential logic by calling the controller function directly
+        // We'll capture the response via a mock res object
+        let status = 200;
+        let responseData = {};
+        const mockRes = {
+          status: (s) => { status = s; return mockRes; },
+          json: (d) => { responseData = d; return mockRes; }
+        };
+
+        await universityController.issueCredential(mockReq, mockRes);
+
+        if (status === 201) {
+          results.success++;
+        } else {
+          results.failed++;
+          results.errors.push({ 
+            student: credData.studentName || credData.studentId, 
+            error: responseData.error || 'Failed to issue' 
+          });
+        }
+      } catch (err) {
+        results.failed++;
+        results.errors.push({ 
+          student: credData.studentName || credData.studentId, 
+          error: err.message 
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Processed ${results.total} credentials. Success: ${results.success}, Failed: ${results.failed}`,
+      results
+    });
+  } catch (err) {
+    console.error('Error in bulk issuance:', err);
+    res.status(500).json({ error: 'Failed to process bulk issuance' });
+  }
+});
+
 // 3.2 Get Issued Credentials
 // GET /api/university/credentials
 router.get('/credentials', requireUniversity, universityController.getUniversityCredentials);

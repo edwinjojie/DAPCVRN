@@ -6,13 +6,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../..
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { format, subMonths } from 'date-fns';
-import { Filter, Eye, Shield, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { Filter, Eye, Shield, CheckCircle, Clock, AlertCircle, Upload } from 'lucide-react';
+import BulkIssueModal from '../components/BulkIssueModal';
 
 export default function IssuedCredentials() {
   const [selectedCredential, setSelectedCredential] = useState<any | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [showBulkModal, setShowBulkModal] = useState(false);
   
-  const { data, loading } = useIssuedCredentials();
+  const { data, loading, refresh } = useIssuedCredentials();
 
   const handleViewDetails = (credential: any) => {
     setSelectedCredential(credential);
@@ -113,6 +115,14 @@ export default function IssuedCredentials() {
           <p className="text-gray-500 dark:text-gray-400 mt-1">Manage and track all certificates issued by your institution.</p>
         </div>
         <div className="flex gap-3">
+          <Button 
+            variant="default" 
+            className="bg-blue-600 hover:bg-blue-700 text-white gap-2 shadow-lg shadow-blue-500/20"
+            onClick={() => setShowBulkModal(true)}
+          >
+            <Upload className="h-4 w-4" />
+            Bulk Issue
+          </Button>
           <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800 shadow-sm">
             <Shield className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             <span className="text-sm font-semibold text-blue-800 dark:text-blue-300">
@@ -140,6 +150,16 @@ export default function IssuedCredentials() {
         <CredentialDetailsModal 
           credential={selectedCredential} 
           onClose={() => setShowDetails(false)} 
+        />
+      )}
+
+      {showBulkModal && (
+        <BulkIssueModal 
+          onClose={() => setShowBulkModal(false)} 
+          onSuccess={() => {
+            refresh();
+            setShowBulkModal(false);
+          }}
         />
       )}
     </div>
