@@ -172,3 +172,45 @@ export const fetchIssuedCredentials = async () => {
 export const approveVerification = async (id: string) => {
   return api.post(`/university/verify/${id}/approve`);
 };
+
+// ===== SKILL VERIFICATION =====
+export interface SkillVerificationRequest {
+  _id: string;
+  studentId: string;
+  studentName: string;
+  email: string | null;
+  skillName: string;
+  category: string;
+  level: string;
+  status: 'pending' | 'approved' | 'rejected';
+  submittedAt: string;
+  rejectionReason?: string;
+  approvedAt?: string;
+  raw: any;
+}
+
+export const getSkillVerificationRequests = async (
+  page: number = 1,
+  limit: number = 10,
+  status?: string,
+  userRole?: string
+) => {
+  const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+  if (status) params.append('status', status);
+
+  const basePath = getApiBasePath(userRole || 'university');
+  const response = await api.get(`${basePath}/verification/skill-requests?${params}`);
+  return response.data;
+};
+
+export const approveSkillVerification = async (requestId: string, userRole?: string) => {
+  const basePath = getApiBasePath(userRole || 'university');
+  const response = await api.post(`${basePath}/verification/approve-skill/${requestId}`);
+  return response.data;
+};
+
+export const rejectSkillVerification = async (requestId: string, reason: string, userRole?: string) => {
+  const basePath = getApiBasePath(userRole || 'university');
+  const response = await api.post(`${basePath}/verification/reject-skill/${requestId}`, { reason });
+  return response.data;
+};

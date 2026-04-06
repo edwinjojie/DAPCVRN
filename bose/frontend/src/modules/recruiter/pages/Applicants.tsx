@@ -3,6 +3,7 @@ import { useApplicants, type Applicant } from '../hooks/useApplicants';
 import ApplicantTable from '../components/ApplicantTable';
 import MessageModal from '../components/MessageModal';
 import InterviewModal from '../components/InterviewModal';
+import CandidateDetailModal from '../components/CandidateDetailModal';
 import api from '../../../lib/api';
 import { useToast } from '../../../components/ui/toast';
 
@@ -12,8 +13,9 @@ export default function Applicants() {
   const [selectedApplicant, setSelectedApplicant] = useState<Applicant | null>(null);
   const [showMsgModal, setShowMsgModal] = useState(false);
   const [showInterviewModal, setShowInterviewModal] = useState(false);
+  const [profileCandidateId, setProfileCandidateId] = useState<string | null>(null);
   const { toast } = useToast();
-  
+
   useEffect(() => {
     const fetchJobs = async () => {
       try {
@@ -38,6 +40,10 @@ export default function Applicants() {
     setShowInterviewModal(true);
   };
 
+  const handleViewProfile = (candidateId: string) => {
+    setProfileCandidateId(candidateId);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -59,11 +65,12 @@ export default function Applicants() {
       {loading && <p>Loading applicants...</p>}
       {error && <p className="text-red-600">{error}</p>}
       {!loading && !error && (
-        <ApplicantTable 
-          data={data} 
-          onUpdate={updateStatus} 
+        <ApplicantTable
+          data={data}
+          onUpdate={updateStatus}
           onMessage={handleMessage}
           onSchedule={handleSchedule}
+          onViewProfile={handleViewProfile}
         />
       )}
 
@@ -95,8 +102,13 @@ export default function Applicants() {
           }}
         />
       )}
+
+      {/* Candidate quick-review modal — opens when applicant name is clicked */}
+      <CandidateDetailModal
+        candidateId={profileCandidateId}
+        open={!!profileCandidateId}
+        onOpenChange={(open) => { if (!open) setProfileCandidateId(null); }}
+      />
     </div>
   );
 }
-
-

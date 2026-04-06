@@ -7,9 +7,10 @@ interface Props {
   onUpdate: (id: string, status: Applicant['status']) => void;
   onMessage: (applicant: Applicant) => void;
   onSchedule: (applicant: Applicant) => void;
+  onViewProfile: (candidateId: string) => void;
 }
 
-export default function ApplicantTable({ data, onUpdate, onMessage, onSchedule }: Props) {
+export default function ApplicantTable({ data, onUpdate, onMessage, onSchedule, onViewProfile }: Props) {
   if (!data.length) {
     return <div className="text-gray-500 text-center py-10">No applicants yet.</div>;
   }
@@ -35,6 +36,7 @@ export default function ApplicantTable({ data, onUpdate, onMessage, onSchedule }
               onUpdate={onUpdate} 
               onMessage={onMessage}
               onSchedule={onSchedule}
+              onViewProfile={onViewProfile}
             />
           ))}
         </tbody>

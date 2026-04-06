@@ -10,6 +10,8 @@
 import express from 'express';
 import fabricNetwork from '../services/fabricNetwork.js';
 import BlockchainSkill from '../models/BlockchainSkill.js';
+import SkillVerificationRequest from '../models/SkillVerificationRequest.js';
+import { User, Notification } from '../models/index.js';
 
 const router = express.Router();
 
@@ -50,11 +52,15 @@ router.get('/', async (req, res) => {
  */
 router.post('/add', async (req, res) => {
   try {
-    const { skillId, studentId, studentName, skillName, category, level, issuer, identity } = req.body;
+    const { skillId, studentId, studentName, skillName, category, level, issuer, identity, role } = req.body;
 
     if (!skillId || !studentId || !skillName || !identity) {
       return res.status(400).json({ error: 'Missing required fields: skillId, studentId, skillName, identity' });
     }
+
+    // Default role to 'institution' – the chaincode only allows
+    // ['institution', 'employer', 'training_center', 'admin']
+    const fabricRole = role || 'institution';
 
     // 1. Save to MongoDB with PENDING status
     let skillRecord;
@@ -83,6 +89,7 @@ router.post('/add', async (req, res) => {
     try {
       await fabricNetwork.addSkill(
         identity,
+        fabricRole,
         skillId,
         studentId,
         studentName  || '',
@@ -147,5 +154,93 @@ router.get('/:skillId', async (req, res) => {
   }
 });
 
-export default router;
+// ── POST /api/skill/request-verification ──────────────────────────────────────
+/**
+ * Student requests institution verification for a skill.
+ *
+ * Body (JSON):
+ *   skillId          – the MongoDB _id or skillId string of the BlockchainSkill
+ *   institutionName  – name/organization of the institution to verify
+ */
+router.post('/request-verification', async (req, res) => {
+  try {
+    const { skillId, institutionName } = req.body;
 
+    if (!skillId || !institutionName) {
+      return res.status(400).json({ error: 'Missing required fields: skillId, institutionName' });
+    }
+
+    // Find the skill record
+    const mongoose = (await import('mongoose')).default;
+    const query = mongoose.isValidObjectId(skillId)
+      ? { $or: [{ _id: skillId }, { skillId }] }
+      : { skillId };
+    const skill = await BlockchainSkill.findOne(query);
+    if (!skill) {
+      return res.status(404).json({ error: 'Skill not found' });
+    }
+
+    if (skill.verificationStatus === 'pending') {
+      return res.status(400).json({ error: 'Verification already requested for this skill' });
+    }
+    if (skill.verificationStatus === 'verified') {
+      return res.status(400).json({ error: 'Skill is already verified' });
+    }
+
+    // Find the institution user by organization (case-insensitive)
+    const institution = await User.findOne({
+      role: { $in: ['university', 'institution', 'verifier'] },
+      organization: { $regex: new RegExp(`^${institutionName.trim()}$`, 'i') }
+    });
+    if (!institution) {
+      return res.status(404).json({ error: `Institution "${institutionName}" not found` });
+    }
+
+    // Find the requester (student)
+    const requester = await User.findOne({ _id: skill.studentId }).catch(() => null)
+      || await User.findOne({ userId: skill.studentId }).catch(() => null);
+
+    // Create the SkillVerificationRequest
+    const svr = await SkillVerificationRequest.create({
+      skillId: skill._id,
+      requesterId: requester?._id || skill.studentId,
+      verifierId: institution._id,
+      status: 'pending'
+    });
+
+    // Update blockchainSkill verificationStatus
+    skill.verificationStatus = 'pending';
+    skill.verifierId = institution._id;
+    await skill.save();
+
+    // Create a notification for the institution
+    try {
+      await Notification.createNotification({
+        userId: institution._id,
+        type: 'skill_verification_request',
+        title: 'Skill Verification Request',
+        message: `${skill.studentName || 'A student'} has requested verification for the skill "${skill.skillName}".`,
+        priority: 'medium',
+        relatedUser: requester?._id || undefined,
+        actionUrl: '/verification-requests',
+        actionText: 'Review Request'
+      });
+    } catch (notifErr) {
+      console.warn('Failed to create notification:', notifErr.message);
+    }
+
+    res.status(201).json({
+      success: true,
+      message: 'Verification request submitted',
+      requestId: svr._id,
+      skillId: skill.skillId,
+      verificationStatus: 'pending',
+      institution: institution.organization
+    });
+  } catch (err) {
+    console.error('skill/request-verification error:', err);
+    res.status(500).json({ error: 'Failed to submit verification request', details: err.message });
+  }
+});
+
+export default router;

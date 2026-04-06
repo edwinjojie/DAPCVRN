@@ -19,7 +19,16 @@ const blockchainSkillSchema = new mongoose.Schema(
       enum:    ['PENDING', 'ADDED', 'FAILED'],
       default: 'PENDING'
     },
-    errorMessage: { type: String, default: null }  // populated when FAILED
+    errorMessage: { type: String, default: null },  // populated when FAILED
+    // Verification workflow fields
+    verificationStatus: {
+      type:    String,
+      enum:    ['unverified', 'pending', 'verified', 'rejected'],
+      default: 'unverified'
+    },
+    verifierId:      { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    verifiedAt:      { type: Date, default: null },
+    rejectionReason: { type: String, default: null }
   },
   { timestamps: true }
 );

@@ -7,9 +7,10 @@ interface Props {
   onUpdate: (id: string, status: Applicant['status']) => void;
   onMessage: (applicant: Applicant) => void;
   onSchedule: (applicant: Applicant) => void;
+  onViewProfile: (candidateId: string) => void;
 }
 
-export default function ApplicantRow({ applicant, onUpdate, onMessage, onSchedule }: Props) {
+export default function ApplicantRow({ applicant, onUpdate, onMessage, onSchedule, onViewProfile }: Props) {
   const badgeColors: Record<Applicant['status'], string> = {
     applied: 'bg-gray-100 text-gray-800',
     shortlisted: 'bg-blue-100 text-blue-800',
@@ -20,8 +21,13 @@ export default function ApplicantRow({ applicant, onUpdate, onMessage, onSchedul
   return (
     <tr className="border-b border-gray-200 hover:bg-gray-50 transition">
       <td className="p-3">
-        <div className="font-medium text-gray-900">{applicant.name}</div>
-        <div className="text-xs text-gray-400">ID: {applicant.candidateId.substring(0, 8)}...</div>
+        <button
+          className="text-left group"
+          onClick={() => onViewProfile(applicant.candidateId)}
+        >
+          <div className="font-medium text-blue-600 group-hover:text-blue-800 group-hover:underline">{applicant.name}</div>
+          <div className="text-xs text-gray-400">Click to view profile</div>
+        </button>
       </td>
       <td className="p-3 text-gray-500">{applicant.email}</td>
       <td className="p-3 text-gray-500 font-medium text-blue-600">{applicant.jobTitle || 'Unknown Job'}</td>
@@ -42,5 +48,3 @@ export default function ApplicantRow({ applicant, onUpdate, onMessage, onSchedul
     </tr>
   );
 }
-
-

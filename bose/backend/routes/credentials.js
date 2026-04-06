@@ -18,6 +18,25 @@ const router = express.Router();
 // Multer memory storage so we can compute hash before persisting
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
 
+// Map frontend credential types to valid DB enum values
+const CREDENTIAL_TYPE_MAP = {
+  'academic': 'degree',
+  'professional': 'certificate',
+  'skill': 'skill',
+  'achievement': 'achievement',
+  'certification': 'certificate',
+  'course': 'certificate',
+  'degree': 'degree',
+  'diploma': 'diploma',
+  'transcript': 'transcript',
+  'other': 'other'
+};
+
+function mapCredentialType(frontendType) {
+  if (!frontendType) return 'other';
+  return CREDENTIAL_TYPE_MAP[frontendType.toLowerCase()] || 'other';
+}
+
 // GET my credentials (real DB-backed)
 router.get('/my', async (req, res) => {
   try {
@@ -73,8 +92,8 @@ router.post('/upload', upload.single('file'), async (req, res) => {
       userId,
       studentName: req.body.studentName || userRecord?.name || req.user?.name || 'Unknown Student',
       studentEmail: req.body.studentEmail || userRecord?.email || req.user?.email || 'unknown@example.com',
-      type: req.body.type || 'other',
-      title: req.body.title || req.file.originalname,
+      type: mapCredentialType(req.body.type),
+      title: req.body.title || req.body.name || req.file.originalname,
       description: req.body.description || '',
       institution: req.body.institution || req.body.issuer || req.body.organization || (userRecord?.organization || 'Unknown'),
       institutionId: req.body.institutionId || null,
@@ -197,13 +216,17 @@ router.delete('/:id', async (req, res) => {
   try {
     const id = req.params.id;
     const userId = req.user?.userId || req.user?.id;
-    const cred = await Credential.findOne({ credentialId: id });
+    // Try both credentialId and _id for robustness
+    let cred = await Credential.findOne({ credentialId: id });
+    if (!cred) {
+      try { cred = await Credential.findById(id); } catch (e) { /* not an ObjectId */ }
+    }
     if (!cred) return res.status(404).json({ error: 'Credential not found' });
-    if (String(cred.userId) !== String(userId) && req.user.role !== 'admin') {
+    if (String(cred.userId) !== String(userId) && req.user?.role !== 'admin') {
       return res.status(403).json({ error: 'Forbidden' });
     }
-    await cred.remove();
-    return res.json({ success: true });
+    await Credential.deleteOne({ _id: cred._id });
+    return res.json({ success: true, message: 'Credential deleted' });
   } catch (error) {
     console.error('Error deleting credential:', error);
     res.status(500).json({ error: 'Failed to delete credential' });
@@ -368,13 +391,39 @@ router.get('/requests', async (req, res) => {
   }
 });
 
+// Get blockchain status for a credential
+router.get('/blockchain-status/:credentialId', async (req, res) => {
+  try {
+    const { credentialId } = req.params;
+    const cred = await Credential.findOne({ credentialId }).select('blockchainTxId blockchainTimestamp status dataHash').lean();
+    if (!cred) {
+      return res.status(404).json({ error: 'Credential not found' });
+    }
+    res.json({
+      success: true,
+      credentialId,
+      isAnchored: !!cred.blockchainTxId,
+      blockchainTxId: cred.blockchainTxId,
+      blockchainTimestamp: cred.blockchainTimestamp,
+      status: cred.status,
+      dataHash: cred.dataHash
+    });
+  } catch (error) {
+    console.error('Error checking blockchain status:', error);
+    res.status(500).json({ error: 'Failed to check blockchain status' });
+  }
+});
+
 // Get credential by ID
 router.get('/:credentialId', async (req, res) => {
   try {
     const { credentialId } = req.params;
 
-    // Try MongoDB first
-    const credential = await Credential.findById(credentialId).lean();
+    // Try credentialId field first (more common), then _id
+    let credential = await Credential.findOne({ credentialId }).lean();
+    if (!credential) {
+      try { credential = await Credential.findById(credentialId).lean(); } catch (e) { /* not an ObjectId */ }
+    }
 
     if (credential) {
       return res.json({

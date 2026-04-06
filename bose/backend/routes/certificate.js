@@ -51,20 +51,9 @@ router.post('/upload', upload.single('certificate'), async (req, res) => {
 
     const fileHash = generateCertHash(file.buffer);
     const certId   = `CERT_${studentId}_${Date.now()}`;
-    // We pass admin role and identity here as default since it's an admin route
-    await fabricNetwork.addCertificate(
-      'admin', // User identity
-      'admin', // Role
-      certId,
-      studentId,
-      studentName,
-      course,
-      institution,
-      grade,
-      issueDate,
-      fileHash
-    );
-    await BlockchainCertificate.create({
+
+    // 1. Save to MongoDB FIRST (guaranteed persistence)
+    const certRecord = await BlockchainCertificate.create({
       certId,
       studentId,
       studentName,
@@ -76,11 +65,35 @@ router.post('/upload', upload.single('certificate'), async (req, res) => {
       status:    'PENDING'
     });
 
+    // 2. Attempt Fabric ledger write (best-effort)
+    let fabricWritten = false;
+    try {
+      await fabricNetwork.addCertificate(
+        'admin', // User identity
+        'admin', // Role
+        certId,
+        studentId,
+        studentName,
+        course,
+        institution,
+        grade || '',
+        issueDate,
+        fileHash
+      );
+      fabricWritten = true;
+      console.log(`✅ Certificate ${certId} written to Fabric ledger`);
+    } catch (fabricErr) {
+      console.warn(`⚠️ Fabric write failed for ${certId} (certificate saved to MongoDB): ${fabricErr.message}`);
+    }
+
     res.status(201).json({
       success:       true,
-      message:       'Certificate uploaded and awaiting verification',
+      message:       fabricWritten
+        ? 'Certificate uploaded and written to blockchain'
+        : 'Certificate uploaded (blockchain write pending)',
       certificateId: certId,
-      fileHash
+      fileHash,
+      fabricWritten
     });
   } catch (err) {
     console.error('certificate/upload error:', err);

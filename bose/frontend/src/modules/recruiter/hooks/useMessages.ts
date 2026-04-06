@@ -9,20 +9,28 @@ export function useMessages(candidateId?: string) {
     if (!candidateId) return;
     (async () => {
       setLoading(true);
-      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-      const res = await api.get(`${baseUrl}/api/messages/${encodeURIComponent(candidateId)}`);
-      setMessages(res.data || []);
-      setLoading(false);
+      try {
+        // api already has baseURL set — don't prepend it again
+        const res = await api.get(`/messages/${encodeURIComponent(candidateId)}`);
+        setMessages(res.data || []);
+      } catch (err) {
+        console.error('Failed to fetch messages:', err);
+        setMessages([]);
+      } finally {
+        setLoading(false);
+      }
     })();
   }, [candidateId]);
 
   const sendMessage = async (text: string) => {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-    const res = await api.post(`${baseUrl}/api/messages/${encodeURIComponent(candidateId || '')}`, { text });
-    setMessages((prev) => [...prev, res.data]);
+    if (!candidateId) return;
+    try {
+      const res = await api.post(`/messages/${encodeURIComponent(candidateId)}`, { text });
+      setMessages((prev) => [...prev, res.data]);
+    } catch (err) {
+      console.error('Failed to send message:', err);
+    }
   };
 
   return { messages, loading, sendMessage };
 }
-
-

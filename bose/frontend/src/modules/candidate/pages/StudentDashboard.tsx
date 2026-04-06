@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useToast } from '../../../components/ui/toast';
@@ -17,13 +17,8 @@ import ShareCredentials from './dashboard/ShareCredentials';
 import Recommendations from './dashboard/Recommendations';
 import Analytics from './dashboard/Analytics';
 import CertificateDetailsModal from './dashboard/CertificateDetailsModal';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../../components/ui/dialog'; // For Quick Share Modal if needed, using ShareCredentials instead?
-// Note: DashboardHome has a Share button that opens a simple share modal. 
-// We can use the ShareCredentials component's modal or a simplified one. 
-// For now, I will use a simple state to show ShareCredentials page or a modal. 
-// Actually, the original design had a "Share Modal" triggered from Dashboard. 
-// I'll reuse a simple Share Dialog here or redirect to Share tab? 
-// The original code had a share modal pop up. I'll include a simple Share Modal here.
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../../components/ui/dialog';
+import QRCodeModal from '../components/QRCodeModal';
 
 import { Share2, QrCode } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
@@ -42,13 +37,12 @@ export default function StudentDashboard() {
   const [certificateDetailsOpen, setCertificateDetailsOpen] = useState(false);
   const [selectedCertificate, setSelectedCertificate] = useState<CertificateItem | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
+  const [qrModalOpen, setQrModalOpen] = useState(false);
 
   const studentProfile = useMemo(() => ({
     name: user?.name || 'Student Name',
     role: user?.role || 'Student',
     email: user?.email || 'student@example.com',
-    program: 'B.Tech Computer Science', // Dummy
-    enrollmentId: 'CS2024001' // Dummy
   }), [user]);
 
   useEffect(() => {
@@ -58,85 +52,97 @@ export default function StudentDashboard() {
         const response = await api.get('/credentials/my');
         if (response.data) {
           setCertificates(response.data.map((c: any) => ({
-            ...c,
-            uploadedAt: c.issuedOn || new Date().toISOString(), // Map issuedOn to uploadedAt if needed
-            status: c.status || 'pending'
+            id: c._id || c.credentialId || c.id,
+            name: c.title || c.credentialName || c.name || 'Untitled Credential',
+            fileName: c.attachments?.[0]?.filename || c.fileName || '',
+            status: c.status || 'pending',
+            uploadedAt: c.issueDate || c.issuedOn || c.createdAt || new Date().toISOString(),
+            verifiedBy: c.verifiedBy || undefined,
+            verifiedAt: c.verifiedAt || undefined,
+            type: c.type || 'certificate',
+            institution: c.institution || c.issuer || 'Unknown',
+            grade: c.grade || '',
+            issueDate: c.issueDate ? new Date(c.issueDate).toLocaleDateString() : '',
+            skills: c.skills || [],
+            description: c.description || '',
+            blockchainTxId: c.blockchainTxId || null,
+            dataHash: c.dataHash || '',
+            credentialId: c.credentialId || '',
+            attachments: c.attachments || [],
           })));
         }
       } catch (error) {
         console.error('Failed to load credentials', error);
-        // Fallback dummy data if API fails (matching original behavior roughly, or just empty)
-        setCertificates([
-          {
-            id: '1',
-            name: 'Advanced React Certification',
-            fileName: 'react-cert.pdf',
-            status: 'verified',
-            uploadedAt: '2023-12-15T10:00:00Z',
-            verifiedBy: 'Meta',
-            verifiedAt: '2023-12-20T14:30:00Z',
-            type: 'certification',
-            institution: 'Meta via Coursera',
-            grade: '98%',
-            issueDate: '2023-12-10',
-            skills: ['React', 'Redux', 'Web Performance'],
-            description: 'Advanced certification in React development'
-          },
-          {
-            id: '2',
-            name: 'B.Tech Computer Science',
-            fileName: 'degree.pdf',
-            status: 'verified',
-            uploadedAt: '2023-06-01T09:00:00Z',
-            verifiedBy: 'University of Technology',
-            verifiedAt: '2023-06-15T11:20:00Z',
-            type: 'degree',
-            institution: 'University of Technology',
-            grade: '3.8 GPA',
-            skills: ['Computer Science', 'Data Structures', 'Algorithms'],
-            issueDate: '2023-05-20',
-            description: 'Bachelor of Technology in Computer Science'
-          },
-          {
-            id: '3',
-            name: 'Machine Learning Specialization',
-            fileName: 'ml-cert.pdf',
-            status: 'pending',
-            uploadedAt: '2024-03-15T14:20:00Z',
-            type: 'certification',
-            institution: 'DeepLearning.AI',
-            grade: 'In Progress',
-            skills: ['Python', 'Neural Networks', 'TensorFlow'],
-            issueDate: '2024-03-10',
-            description: 'Advanced machine learning techniques'
-          }
-        ]);
+        // Show empty state — no mock data
+        setCertificates([]);
       }
     };
 
     fetchCredentials();
 
-    // Dummy data for others
-    setSkillBadges([
-      { id: 's1', name: 'React', level: 'expert', category: 'Frontend', verified: true, verifiedBy: 'Meta', verifiedAt: '2023-12-20T14:30:00Z' },
-      { id: 's2', name: 'Node.js', level: 'advanced', category: 'Backend', verified: true, verifiedBy: 'OpenJS Foundation', verifiedAt: '2024-01-15T09:00:00Z' },
-      { id: 's3', name: 'Python', level: 'intermediate', category: 'Data Science', verified: false }
-    ]);
-
-    setJobHistory([
-      {
-        id: 'j1',
-        title: 'Frontend Intern',
-        company: 'TechStarts Inc.',
-        startDate: '2023-01-10',
-        endDate: '2023-04-10',
-        description: 'Built responsive UI components using React and Tailwind CSS.',
-        skills: ['React', 'CSS', 'Git'],
-        verified: true,
-        verifiedBy: 'TechStarts HR',
-        verifiedAt: '2023-04-15T10:00:00Z'
+    // Fetch skill badges from API
+    const fetchSkills = async () => {
+      try {
+        const userId = user?.id;
+        if (userId) {
+          const res = await api.get(`/skill/?studentId=${userId}`);
+          if (res.data?.skills && Array.isArray(res.data.skills)) {
+            setSkillBadges(res.data.skills.map((s: any) => ({
+              id: s._id || s.skillId || s.id,
+              name: s.skillName || s.name,
+              level: (s.level || 'intermediate').toLowerCase(),
+              category: s.category || 'General',
+              verified: s.status === 'ADDED' || s.status === 'VERIFIED',
+              verifiedBy: s.issuer || undefined,
+            })));
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to fetch skills from blockchain, using profile skills');
+        // Fallback: use skills from user record if available
+        if (user?.id) {
+          try {
+            const profileRes = await api.get('/candidate/profile');
+            const profileSkills = profileRes.data?.skills || [];
+            setSkillBadges(profileSkills.map((s: any, i: number) => ({
+              id: `profile-skill-${i}`,
+              name: typeof s === 'string' ? s : s.name,
+              level: typeof s === 'object' ? s.level : 'intermediate',
+              category: 'General',
+              verified: typeof s === 'object' ? s.verified : false,
+            })));
+          } catch (err) {
+            setSkillBadges([]);
+          }
+        }
       }
-    ]);
+    };
+
+    fetchSkills();
+
+    // Fetch job history from actual applications
+    const fetchJobHistory = async () => {
+      try {
+        const res = await api.get('/applications/my');
+        const apps = res.data?.applications || res.data || [];
+        setJobHistory(apps.map((app: any) => ({
+          id: app._id || app.applicationId,
+          title: app.jobId?.title || app.jobTitle || 'Unknown Position',
+          company: app.jobId?.company || app.company || 'Unknown Company',
+          startDate: app.appliedAt ? new Date(app.appliedAt).toLocaleDateString() : '',
+          endDate: app.status === 'hired' ? (app.updatedAt ? new Date(app.updatedAt).toLocaleDateString() : 'Present') : 'In Progress',
+          description: app.coverLetter || '',
+          skills: app.jobId?.skills || [],
+          verified: app.status === 'hired',
+          verifiedBy: app.status === 'hired' ? (app.jobId?.company || 'Employer') : undefined,
+          verifiedAt: app.status === 'hired' ? app.updatedAt : undefined,
+        })));
+      } catch (e) {
+        console.warn('Failed to fetch job history:', e);
+        setJobHistory([]);
+      }
+    };
+    fetchJobHistory();
   }, []);
 
   const handleLogout = () => {
@@ -160,10 +166,6 @@ export default function StudentDashboard() {
     doc.text(`Name: ${studentProfile.name}`, 20, yPosition);
     yPosition += 10;
     doc.text(`Email: ${studentProfile.email}`, 20, yPosition);
-    yPosition += 10;
-    doc.text(`Program: ${studentProfile.program}`, 20, yPosition);
-    yPosition += 10;
-    doc.text(`Enrollment ID: ${studentProfile.enrollmentId}`, 20, yPosition);
     yPosition += 20;
 
     // Certificates
@@ -295,12 +297,39 @@ export default function StudentDashboard() {
             <DialogTitle>Share Credentials</DialogTitle>
           </DialogHeader>
           <div className="space-y-6">
+            {/* Show the shareable link */}
+            <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-lg border border-slate-200">
+              <input
+                readOnly
+                value={`${window.location.origin}/profile/${user?.id || ''}`}
+                className="flex-1 bg-transparent text-sm font-mono text-slate-700 outline-none"
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const url = `${window.location.origin}/profile/${user?.id || ''}`;
+                  navigator.clipboard.writeText(url).then(() => {
+                    toast({ title: 'Link Copied', description: 'Public profile link copied to clipboard', variant: 'success' });
+                  }).catch(() => {
+                    toast({ title: 'Copy Failed', description: 'Could not copy link to clipboard', variant: 'error' });
+                  });
+                }}
+              >
+                Copy
+              </Button>
+            </div>
             <div className="grid gap-6 md:grid-cols-2">
               <Button
                 className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-6"
                 onClick={() => {
-                  toast({ title: 'Link Copied', description: 'Portfolio link copied to clipboard', variant: 'success' });
-                  setShareOpen(false);
+                  const url = `${window.location.origin}/profile/${user?.id || ''}`;
+                  navigator.clipboard.writeText(url).then(() => {
+                    toast({ title: 'Link Copied', description: 'Public profile link copied to clipboard', variant: 'success' });
+                    setShareOpen(false);
+                  }).catch(() => {
+                    toast({ title: 'Copy Failed', description: 'Could not copy link', variant: 'error' });
+                  });
                 }}
               >
                 <Share2 className="w-5 h-5 mr-2" />
@@ -308,7 +337,11 @@ export default function StudentDashboard() {
               </Button>
               <Button
                 className="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 text-white py-6"
-                onClick={() => setShareOpen(false)}
+                onClick={() => {
+                  setShareOpen(false);
+                  // Small delay to ensure dialog closes before QR modal opens
+                  setTimeout(() => setQrModalOpen(true), 150);
+                }}
               >
                 <QrCode className="w-5 h-5 mr-2" />
                 Show QR Code
@@ -320,6 +353,14 @@ export default function StudentDashboard() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* QR Code Modal (triggered from Quick Share) */}
+      <QRCodeModal
+        isOpen={qrModalOpen}
+        onClose={() => setQrModalOpen(false)}
+        userId={user?.id || ''}
+        userName={studentProfile.name}
+      />
     </StudentLayout>
   );
 }

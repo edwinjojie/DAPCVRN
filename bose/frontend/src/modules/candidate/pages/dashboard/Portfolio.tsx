@@ -1,11 +1,10 @@
-import React from 'react';
 import { Button } from '../../../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../../components/ui/card';
-import { Download, Share2, Award, Briefcase, User, GraduationCap } from 'lucide-react';
+import { Download, Award, Briefcase, GraduationCap } from 'lucide-react';
 import { CertificateItem, SkillBadge, JobHistory } from './types';
 
 interface PortfolioProps {
-    studentProfile: { name: string; role: string; email: string; program: string; enrollmentId: string };
+    studentProfile: { name: string; role: string; email: string; program?: string; enrollmentId?: string };
     certificates: CertificateItem[];
     skillBadges: SkillBadge[];
     jobHistory: JobHistory[];
@@ -41,7 +40,7 @@ export default function Portfolio({
                     </div>
                     <div className="flex-1 text-center md:text-left">
                         <h2 className="text-2xl font-bold">{studentProfile.name}</h2>
-                        <p className="text-slate-300 mb-4">{studentProfile.program} • {studentProfile.enrollmentId}</p>
+                        <p className="text-slate-300 mb-4">{studentProfile.program || studentProfile.email}</p>
                         <div className="flex flex-wrap justify-center md:justify-start gap-4">
                             <div className="bg-white/10 px-4 py-2 rounded-lg backdrop-blur-sm">
                                 <span className="block text-2xl font-bold text-blue-400">{certificates.filter(c => c.status === 'verified').length}</span>

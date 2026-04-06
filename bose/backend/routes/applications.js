@@ -7,6 +7,7 @@ const router = express.Router();
 router.get("/my", async (req, res) => {
   try {
     const userId = req.user?.userId || req.user?.id;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
     const applications = await Application.find({ candidateId: userId })
       .populate('jobId', 'title company location status')
@@ -18,7 +19,10 @@ router.get("/my", async (req, res) => {
       ...app,
       id: app._id.toString(),
       _id: app._id.toString(),
-      title: app.jobId?.title || 'Unknown Job'
+      jobTitle: app.jobId?.title || app.title || 'Unknown Job',
+      companyName: app.jobId?.company || 'Unknown Company',
+      title: app.jobId?.title || app.title || 'Unknown Job',
+      appliedAt: app.appliedDate || app.createdAt,
     }));
 
     res.json(transformedApps);
@@ -28,10 +32,33 @@ router.get("/my", async (req, res) => {
   }
 });
 
+// Get count of active applications (lightweight, for dashboard stats)
+router.get("/my/count", async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const [total, active] = await Promise.all([
+      Application.countDocuments({ candidateId: userId }).catch(() => 0),
+      Application.countDocuments({
+        candidateId: userId,
+        status: { $in: ['submitted', 'under_review', 'interview', 'applied'] }
+      }).catch(() => 0),
+    ]);
+
+    res.json({ total, active });
+  } catch (error) {
+    console.error('Error counting applications:', error);
+    res.status(500).json({ error: 'Failed to count applications' });
+  }
+});
+
 // Apply to a job - Now using MongoDB
 router.post("/apply/:jobId", async (req, res) => {
   try {
     const userId = req.user?.userId || req.user?.id;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
     const { jobId } = req.params;
     const { title } = req.body;
 
@@ -51,11 +78,17 @@ router.post("/apply/:jobId", async (req, res) => {
       return res.status(400).json({ error: 'Already applied to this job' });
     }
 
+    // Get candidate details for required fields
+    const User = (await import('../models/User.js')).default;
+    const candidateUser = await User.findById(userId).select('name email').lean();
+
     // Create application
     const application = await Application.create({
       applicationId: `APP-${Date.now()}`,
       jobId,
       candidateId: userId,
+      candidateName: candidateUser?.name || req.user?.name || 'Unknown',
+      candidateEmail: candidateUser?.email || req.user?.email || 'unknown@example.com',
       status: 'submitted',
       appliedDate: new Date(),
       timeline: [{
@@ -73,7 +106,10 @@ router.post("/apply/:jobId", async (req, res) => {
       ...populated,
       id: populated._id.toString(),
       _id: populated._id.toString(),
-      title: populated.jobId?.title || title
+      jobTitle: populated.jobId?.title || title,
+      companyName: populated.jobId?.company || 'Unknown Company',
+      title: populated.jobId?.title || title,
+      appliedAt: populated.appliedDate,
     });
   } catch (error) {
     console.error('Error submitting application:', error);
@@ -81,6 +117,32 @@ router.post("/apply/:jobId", async (req, res) => {
   }
 });
 
+// Withdraw / delete an application
+router.delete("/:id", async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const app = await Application.findById(req.params.id);
+    if (!app) return res.status(404).json({ error: 'Application not found' });
+    if (String(app.candidateId) !== String(userId)) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    // Only allow withdrawal of active applications
+    if (['accepted', 'rejected'].includes(app.status)) {
+      return res.status(400).json({ error: 'Cannot withdraw a finalized application' });
+    }
+
+    app.status = 'withdrawn';
+    app.timeline.push({ status: 'withdrawn', date: new Date(), note: 'Application withdrawn by candidate' });
+    await app.save();
+
+    res.json({ success: true, message: 'Application withdrawn' });
+  } catch (error) {
+    console.error('Error withdrawing application:', error);
+    res.status(500).json({ error: 'Failed to withdraw application' });
+  }
+});
+
 export default router;
-
-

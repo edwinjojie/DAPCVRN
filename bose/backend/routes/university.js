@@ -4,7 +4,7 @@ import crypto from 'crypto';
 import mongoose from 'mongoose';
 import { v4 as uuidv4 } from 'uuid';
 import { requireUniversity } from '../middleware/roleMiddleware.js';
-import { Credential, VerificationRequest, User } from '../models/index.js';
+import { Credential, VerificationRequest, User, BlockchainSkill, SkillVerificationRequest, Notification } from '../models/index.js';
 import * as universityController from '../controllers/universityController.js';
 
 import fabricNetwork from '../services/fabricNetwork.js';
@@ -448,6 +448,185 @@ router.get('/credentials/issued/:credentialId', requireUniversity, async (req, r
   } catch (err) {
     console.error('Error fetching credential:', err);
     res.status(500).json({ error: 'Failed to fetch credential' });
+  }
+});
+
+// ==================== SKILL VERIFICATION ROUTES ====================
+
+// GET /api/university/verification/skill-requests
+router.get('/verification/skill-requests', requireUniversity, async (req, res) => {
+  try {
+    const { error, value } = paginationSchema.validate(req.query);
+    if (error) return res.status(400).json({ error: error.details[0].message });
+
+    const { page, limit, status } = value;
+    const query = {};
+    if (status) query.status = status;
+
+    // Scope to this university's verification requests
+    if (req.user && (req.user.userId || req.user._id)) {
+      try {
+        query.verifierId = new mongoose.Types.ObjectId(req.user.userId || req.user._id);
+      } catch {
+        // If the userId can't be cast to ObjectId, skip the filter
+      }
+    }
+
+    const total = await SkillVerificationRequest.countDocuments(query);
+    const requests = await SkillVerificationRequest.find(query)
+      .populate('skillId')
+      .populate('requesterId', 'name email')
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean();
+
+    const mapped = requests.map(r => {
+      const skill = r.skillId || {};
+      const student = r.requesterId || {};
+      return {
+        _id: r._id,
+        studentId: student._id || r.requesterId,
+        studentName: skill.studentName || student.name || 'Unknown',
+        email: student.email || null,
+        skillName: skill.skillName || 'Unknown Skill',
+        category: skill.category || '',
+        level: skill.level || '',
+        status: r.status,
+        submittedAt: r.createdAt,
+        rejectionReason: r.status === 'rejected' ? (r.notes || null) : undefined,
+        approvedAt: r.status === 'approved' ? r.updatedAt : undefined,
+        raw: r,
+      };
+    });
+
+    res.json({
+      success: true,
+      data: mapped,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (err) {
+    console.error('Error fetching skill verification requests:', err);
+    res.status(500).json({ error: 'Failed to fetch skill verification requests' });
+  }
+});
+
+// POST /api/university/verification/approve-skill/:requestId
+router.post('/verification/approve-skill/:requestId', requireUniversity, async (req, res) => {
+  try {
+    const { requestId } = req.params;
+
+    const svr = await SkillVerificationRequest.findById(requestId).populate('skillId').populate('requesterId', 'name email');
+    if (!svr) return res.status(404).json({ error: 'Skill verification request not found' });
+    if (svr.status !== 'pending') return res.status(400).json({ error: `Request already ${svr.status}`, currentStatus: svr.status });
+
+    // Mark request as approved
+    svr.status = 'approved';
+    svr.notes = 'Approved by university';
+    svr.updatedAt = new Date();
+    await svr.save();
+
+    // Update the BlockchainSkill record
+    const skill = await BlockchainSkill.findById(svr.skillId._id || svr.skillId);
+    if (skill) {
+      skill.verificationStatus = 'verified';
+      skill.verifiedAt = new Date();
+      try {
+        skill.verifierId = new mongoose.Types.ObjectId(req.user.userId || req.user._id);
+      } catch {
+        // skip if cast fails
+      }
+      await skill.save();
+    }
+
+    // Notify the student
+    try {
+      const studentId = svr.requesterId?._id || svr.requesterId;
+      await Notification.createNotification({
+        userId: studentId,
+        type: 'skill_verified',
+        title: 'Skill Verified!',
+        message: `Your skill "${skill?.skillName || 'Unknown'}" has been verified by ${req.user.organization || 'an institution'}.`,
+        priority: 'high',
+        actionUrl: '/dashboard',
+        actionText: 'View Skills'
+      });
+    } catch (notifErr) {
+      console.warn('Failed to create skill approval notification:', notifErr.message);
+    }
+
+    res.json({
+      success: true,
+      message: 'Skill verification approved',
+      verificationRequest: svr,
+      skillStatus: skill?.verificationStatus || 'verified',
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error('Error approving skill verification:', err);
+    res.status(500).json({ error: 'Failed to approve skill verification' });
+  }
+});
+
+// POST /api/university/verification/reject-skill/:requestId
+router.post('/verification/reject-skill/:requestId', requireUniversity, async (req, res) => {
+  try {
+    const { requestId } = req.params;
+    const { reason } = req.body;
+
+    if (!reason || reason.length < 5) {
+      return res.status(400).json({ error: 'Rejection reason must be at least 5 characters' });
+    }
+
+    const svr = await SkillVerificationRequest.findById(requestId).populate('skillId');
+    if (!svr) return res.status(404).json({ error: 'Skill verification request not found' });
+    if (svr.status !== 'pending') return res.status(400).json({ error: `Request already ${svr.status}`, currentStatus: svr.status });
+
+    // Mark as rejected
+    svr.status = 'rejected';
+    svr.notes = reason;
+    svr.updatedAt = new Date();
+    await svr.save();
+
+    // Update the BlockchainSkill record
+    const skill = await BlockchainSkill.findById(svr.skillId._id || svr.skillId);
+    if (skill) {
+      skill.verificationStatus = 'rejected';
+      skill.rejectionReason = reason;
+      await skill.save();
+    }
+
+    // Notify the student
+    try {
+      const studentId = svr.requesterId?._id || svr.requesterId;
+      await Notification.createNotification({
+        userId: studentId,
+        type: 'skill_verified',
+        title: 'Skill Verification Rejected',
+        message: `Your skill "${skill?.skillName || 'Unknown'}" verification was rejected. Reason: ${reason}`,
+        priority: 'medium',
+        actionUrl: '/dashboard',
+        actionText: 'View Details'
+      });
+    } catch (notifErr) {
+      console.warn('Failed to create skill rejection notification:', notifErr.message);
+    }
+
+    res.json({
+      success: true,
+      message: 'Skill verification rejected',
+      verificationRequest: svr,
+      rejectionReason: reason,
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error('Error rejecting skill verification:', err);
+    res.status(500).json({ error: 'Failed to reject skill verification' });
   }
 });
 

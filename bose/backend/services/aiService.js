@@ -5,21 +5,21 @@ dotenv.config();
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
+// Valid Gemini model with fallback — gemini-3 doesn't exist yet
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-pro';
+
 /**
  * Analyze the skill gap for a candidate targeting a specific role / job.
- *
- * @param {string[]} candidateSkills - Skills the candidate already has
- * @param {string}   targetRole      - The job title / role the candidate is targeting
- * @param {string[]} jobSkills       - Skills required by the target job (if available)
- * @returns {Promise<object>}        - AI-generated skill gap analysis
  */
 export async function analyzeSkillGap(candidateSkills, targetRole, jobSkills = []) {
-  try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
+  let lastError;
+  for (const modelName of [GEMINI_MODEL, 'gemini-3-flash-preview', 'gemini-pro']) {
+    try {
+      const model = genAI.getGenerativeModel({ model: modelName });
 
-    const prompt = `You are an expert career advisor and skills analyst.
+      const prompt = `You are an expert career advisor and skills analyst.
 
-A candidate has the following skills: ${candidateSkills.join(', ')}.
+A candidate has the following skills: ${candidateSkills.join(', ') || 'none listed'}.
 
 They want to transition into the role of "${targetRole}".
 ${jobSkills.length > 0 ? `The job specifically requires these skills: ${jobSkills.join(', ')}.` : ''}
@@ -32,7 +32,7 @@ Please analyze and return a JSON object with the following structure (ONLY retur
   "recommendations": [
     {
       "skill": "skill name",
-      "priority": "high" | "medium" | "low",
+      "priority": "high",
       "reason": "why this skill is important for the target role",
       "suggestedResources": ["free course or resource name"]
     }
@@ -41,58 +41,63 @@ Please analyze and return a JSON object with the following structure (ONLY retur
   "summary": "A short summary of the candidate's readiness for the role"
 }`;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+      const result = await model.generateContent(prompt);
+      const text = result.response.text();
 
-    // Parse the JSON from the AI response
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
+      // Strip markdown fences if present
+      const cleaned = text.replace(/```json?\s*/gi, '').replace(/```/g, '').trim();
+      const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        console.log(`✅ AI skill gap analysis succeeded with model: ${modelName}`);
+        return JSON.parse(jsonMatch[0]);
+      }
+
+      return {
+        targetRole,
+        matchingSkills: [],
+        missingSkills: [],
+        recommendations: [],
+        overallReadiness: 0,
+        summary: text
+      };
+    } catch (err) {
+      console.warn(`⚠️ AI model ${modelName} failed: ${err.message}`);
+      lastError = err;
+      // Try the next model in the fallback chain
     }
-
-    return {
-      error: false,
-      targetRole,
-      matchingSkills: [],
-      missingSkills: [],
-      recommendations: [],
-      overallReadiness: 0,
-      summary: text
-    };
-  } catch (error) {
-    console.error('AI Skill Gap Analysis error:', error);
-    throw new Error('Failed to generate skill gap analysis: ' + error.message);
   }
+  throw new Error('Failed to generate skill gap analysis: ' + lastError?.message);
 }
 
 /**
  * Match and rank candidates for a specific job based on skills.
- *
- * @param {object}   job        - The job document (title, skills, description, etc.)
- * @param {object[]} candidates - Array of candidate profiles with skills
- * @returns {Promise<object>}   - AI-generated ranked candidate list
  */
 export async function matchCandidatesToJob(job, candidates) {
-  try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
+  let lastError;
+  for (const modelName of [GEMINI_MODEL, 'gemini-1.5-flash', 'gemini-pro']) {
+    try {
+      const model = genAI.getGenerativeModel({ model: modelName });
 
-    // Build a concise snapshot of each candidate
-    const candidateSummaries = candidates.map((c, i) => ({
-      index: i,
-      id: c._id?.toString() || c.id,
-      name: `${c.firstName || ''} ${c.lastName || ''}`.trim() || 'Unknown',
-      skills: (c.skills || []).map(s => (typeof s === 'string' ? s : s.name)),
-      experience: c.yearsOfExperience || 0,
-      headline: c.headline || ''
-    }));
+      // Build a concise snapshot of each candidate
+      const candidateSummaries = candidates.map((c, i) => ({
+        index: i,
+        id: c._id?.toString() || c.id,
+        name: `${c.firstName || ''} ${c.lastName || ''}`.trim() || c.name || 'Unknown',
+        skills: (c.skills || []).map(s => (typeof s === 'string' ? s : s.name)).filter(Boolean),
+        experience: c.yearsOfExperience || 0,
+        headline: c.headline || ''
+      }));
 
-    const prompt = `You are an expert recruiter AI assistant.
+      if (candidateSummaries.length === 0) {
+        return [];
+      }
+
+      const prompt = `You are an expert recruiter AI assistant.
 
 Here is a job posting:
 - Title: ${job.title}
-- Required Skills: ${(job.skills || []).join(', ')}
-- Description: ${job.description || 'N/A'}
+- Required Skills: ${(job.skills || []).join(', ') || 'any'}
+- Description: ${(job.description || 'N/A').substring(0, 500)}
 - Experience Level: ${job.experienceLevel || 'any'}
 
 Here are the available candidates (as JSON):
@@ -110,21 +115,24 @@ Please rank the candidates by how well they match the job. Return a JSON array (
   }
 ]
 
-Sort by matchScore descending. Include ALL candidates.`;
+Sort by matchScore descending. Include ALL candidates even if score is 0.`;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+      const result = await model.generateContent(prompt);
+      const text = result.response.text();
 
-    // Parse the JSON from the AI response
-    const jsonMatch = text.match(/\[[\s\S]*\]/);
-    if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
+      // Strip markdown fences
+      const cleaned = text.replace(/```json?\s*/gi, '').replace(/```/g, '').trim();
+      const jsonMatch = cleaned.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        console.log(`✅ AI candidate matching succeeded with model: ${modelName}`);
+        return JSON.parse(jsonMatch[0]);
+      }
+
+      return [];
+    } catch (err) {
+      console.warn(`⚠️ AI model ${modelName} failed for candidate matching: ${err.message}`);
+      lastError = err;
     }
-
-    return [];
-  } catch (error) {
-    console.error('AI Candidate Matching error:', error);
-    throw new Error('Failed to match candidates: ' + error.message);
   }
+  throw new Error('Failed to match candidates: ' + lastError?.message);
 }

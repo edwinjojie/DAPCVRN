@@ -1,21 +1,27 @@
-import { LucideIcon } from 'lucide-react';
+
 
 export type DashboardSection = 'dashboard' | 'upload' | 'portfolio' | 'share' | 'recommendations' | 'analytics';
 
 export interface CertificateItem {
     id: string;
     name: string;
-    fileName: string;
-    status: 'pending' | 'verified' | 'rejected';
+    fileName?: string;
+    status: 'pending' | 'verified' | 'rejected' | 'revoked';
     uploadedAt: string;
     verifiedBy?: string;
     verifiedAt?: string;
-    type: 'degree' | 'certification' | 'course';
-    institution: string;
+    type?: string;
+    institution?: string;
     grade?: string;
     issueDate?: string;
-    skills: string[];
+    skills?: string[];
     description?: string;
+    // Blockchain fields
+    blockchainTxId?: string | null;
+    blockchainTimestamp?: string | null;
+    dataHash?: string;
+    credentialId?: string;
+    attachments?: { filename: string; url: string; uploadedAt: string }[];
 }
 
 export interface SkillBadge {

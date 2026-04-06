@@ -174,9 +174,9 @@ app.use('/api/ratings', authenticateToken, ratingsRouter);
 // AI Recommendation routes
 app.use('/api/ai', authenticateToken, aiRouter);
 
-// Blockchain routes
-app.use('/api/certificate', certificateRouter);
-app.use('/api/skill', skillsRouter);
+// Blockchain routes (now authenticated)
+app.use('/api/certificate', authenticateToken, certificateRouter);
+app.use('/api/skill', authenticateToken, skillsRouter);
 
 
 // Serve uploaded files (credentials) - development only
@@ -226,6 +226,8 @@ async function startServer() {
 
     // Start server
     server.listen(PORT, () => {
+      // Make wss available globally for WebSocket broadcasts from routes
+      global.wss = wss;
       console.log(`🚀 BOSE Backend Server running on port ${PORT}`);
       console.log(`📊 WebSocket Server ready for real-time events`);
       console.log(`🔗 Hyperledger Fabric Network: ${process.env.FABRIC_CHANNEL}`);

@@ -1,5 +1,5 @@
 import { analyzeSkillGap, matchCandidatesToJob } from '../services/aiService.js';
-import { Job, Profile, Credential } from '../models/index.js';
+import { Job, Profile, Credential, User, BlockchainSkill } from '../models/index.js';
 
 /**
  * POST /api/ai/skill-gap
@@ -82,19 +82,112 @@ export async function getRecommendedCandidates(req, res) {
     if (!job) {
       return res.status(404).json({ error: 'Job not found' });
     }
-    if (job.employerId?.toString() !== userId) {
+    const isOwner = (
+      String(job.employerId) === String(userId) ||
+      String(job.createdBy) === String(userId)
+    );
+    // In development / demo mode allow any recruiter to get recommendations
+    const isDemoMode = process.env.NODE_ENV !== 'production';
+    if (!isOwner && !isDemoMode) {
       return res.status(403).json({ error: 'You can only get recommendations for your own jobs' });
     }
 
     // Fetch all candidate profiles (students)
-    // We join with User to filter only student role
-    const { User } = await import('../models/index.js');
-    const students = await User.find({ role: 'student' }).select('_id').lean();
+    const students = await User.find({ role: 'student' }).select('_id name email skills').lean();
     const studentIds = students.map(s => s._id);
 
     const profiles = await Profile.find({ userId: { $in: studentIds } }).lean();
 
-    if (profiles.length === 0) {
+    // Also fetch credentials and blockchain skills for richer matching
+    const credentials = await Credential.find({
+      userId: { $in: studentIds },
+      status: { $in: ['issued', 'verified'] }
+    }).select('userId skills title type course').lean();
+
+    const blockchainSkills = await BlockchainSkill.find({
+      studentId: { $in: studentIds.map(id => id.toString()) }
+    }).select('studentId skillName').lean();
+
+    // Build a credential skills map per student
+    const credSkillMap = {};
+    credentials.forEach(c => {
+      const uid = c.userId.toString();
+      if (!credSkillMap[uid]) credSkillMap[uid] = [];
+      (c.skills || []).forEach(s => credSkillMap[uid].push(s));
+      if (c.title) credSkillMap[uid].push(c.title);
+    });
+
+    const bcSkillMap = {};
+    blockchainSkills.forEach(s => {
+      const uid = s.studentId.toString();
+      if (!bcSkillMap[uid]) bcSkillMap[uid] = [];
+      if (s.skillName) bcSkillMap[uid].push(s.skillName);
+    });
+
+    // Build a student name map
+    const studentMap = {};
+    students.forEach(s => { studentMap[s._id.toString()] = s; });
+
+    // Enrich profiles with all skill sources
+    const enrichedProfiles = profiles.map(p => {
+      const uid = p.userId.toString();
+      const student = studentMap[uid] || {};
+      const profileSkills = (p.skills || []).map(s => typeof s === 'string' ? s : s.name);
+      const extraCredSkills = credSkillMap[uid] || [];
+      const extraBcSkills = bcSkillMap[uid] || [];
+      const userSkills = student.skills || [];
+
+      // Deduplicate skills
+      const seen = new Set();
+      const allSkills = [];
+      [...profileSkills, ...userSkills, ...extraCredSkills, ...extraBcSkills].forEach(sk => {
+        const lower = sk.toLowerCase().trim();
+        if (lower && !seen.has(lower)) {
+          seen.add(lower);
+          allSkills.push({ name: sk.trim() });
+        }
+      });
+
+      return {
+        ...p,
+        firstName: p.firstName || student.name?.split(' ')[0] || '',
+        lastName: p.lastName || student.name?.split(' ').slice(1).join(' ') || '',
+        skills: allSkills
+      };
+    });
+
+    // Also handle students without profiles — create pseudo-profiles
+    const profiledUserIds = new Set(profiles.map(p => p.userId.toString()));
+    students.forEach(s => {
+      const uid = s._id.toString();
+      if (!profiledUserIds.has(uid)) {
+        const userSkills = s.skills || [];
+        const extraCredSkills = credSkillMap[uid] || [];
+        const extraBcSkills = bcSkillMap[uid] || [];
+        const seen = new Set();
+        const allSkills = [];
+        [...userSkills, ...extraCredSkills, ...extraBcSkills].forEach(sk => {
+          const lower = sk.toLowerCase().trim();
+          if (lower && !seen.has(lower)) {
+            seen.add(lower);
+            allSkills.push({ name: sk.trim() });
+          }
+        });
+        if (allSkills.length > 0) {
+          enrichedProfiles.push({
+            _id: uid,
+            userId: s._id,
+            firstName: s.name?.split(' ')[0] || '',
+            lastName: s.name?.split(' ').slice(1).join(' ') || '',
+            skills: allSkills,
+            yearsOfExperience: 0,
+            headline: ''
+          });
+        }
+      }
+    });
+
+    if (enrichedProfiles.length === 0) {
       return res.json({
         success: true,
         job: { id: job._id, title: job.title },
@@ -103,7 +196,7 @@ export async function getRecommendedCandidates(req, res) {
       });
     }
 
-    const rankedCandidates = await matchCandidatesToJob(job, profiles);
+    const rankedCandidates = await matchCandidatesToJob(job, enrichedProfiles);
 
     res.json({
       success: true,

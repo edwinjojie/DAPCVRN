@@ -61,8 +61,7 @@ export function useApplicants(jobId?: string) {
 
   const updateStatus = async (id: string, status: Applicant['status']) => {
     try {
-      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-      const res = await api.put(`${baseUrl}/api/recruiter/applications/${encodeURIComponent(id)}/status`, { status });
+      const res = await api.put(`/recruiter/applications/${encodeURIComponent(id)}/status`, { status });
       setData((prev) => prev.map((a) => (a.id === id ? { ...a, status: res.data.application.status } : a)));
       toast({ title: 'Status updated', description: `Applicant ${status}`, variant: 'success' });
     } catch (e: any) {

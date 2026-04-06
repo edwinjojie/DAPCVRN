@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { Button } from '../../../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../../../components/ui/card';
 import { Input } from '../../../../components/ui/input';
-import { Share2, Copy, QrCode, Smartphone, Globe, Clock, ShieldCheck } from 'lucide-react';
+import { Share2, Copy, QrCode, Smartphone, Globe, Clock, ShieldCheck, Check } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../../../../components/ui/dialog';
 import QRCodeModal from '../../components/QRCodeModal';
 import { useAuth } from '../../../../contexts/AuthContext';
+import { useToast } from '../../../../components/ui/toast';
 
 interface ShareCredentialsProps {
     userName: string;
@@ -13,15 +14,22 @@ interface ShareCredentialsProps {
 
 export default function ShareCredentials({ userName }: ShareCredentialsProps) {
     const { user } = useAuth();
-    const [shareLink, setShareLink] = useState(`https://bose.edu/verify/${userName.toLowerCase().replace(/\s/g, '')}-12345`);
+    const { toast } = useToast();
+    const profileUrl = `${window.location.origin}/profile/${user?.id || ''}`;
+    const [shareLink] = useState(profileUrl);
+    const [copied, setCopied] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
     const [qrModalOpen, setQrModalOpen] = useState(false);
     const [shareConfig, setShareConfig] = useState({ expiry: '24h', scope: 'full' });
 
     const copyToClipboard = () => {
-        navigator.clipboard.writeText(shareLink);
-        // In a real app, use toast here. Since toast is not passed, rely on parent or local state for feedback if needed.
-        // Assuming user will see visual feedback or we can add a simple "Copied!" state.
+        navigator.clipboard.writeText(shareLink).then(() => {
+            setCopied(true);
+            toast({ title: 'Link Copied!', description: 'Public profile link copied to clipboard', variant: 'success' });
+            setTimeout(() => setCopied(false), 2000);
+        }).catch(() => {
+            toast({ title: 'Copy Failed', description: 'Could not copy link to clipboard', variant: 'error' });
+        });
     };
 
     return (
@@ -40,8 +48,10 @@ export default function ShareCredentials({ userName }: ShareCredentialsProps) {
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="flex space-x-2">
-                            <Input value={shareLink} readOnly className="bg-slate-50 font-mono text-sm" />
-                            <Button variant="outline" onClick={copyToClipboard}><Copy className="w-4 h-4" /></Button>
+                        <Input value={shareLink} readOnly className="bg-slate-50 font-mono text-sm" />
+                            <Button variant="outline" onClick={copyToClipboard}>
+                                {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+                            </Button>
                         </div>
                         <div className="flex gap-4">
                             <Button onClick={() => setModalOpen(true)} className="bg-blue-600 hover:bg-blue-700 text-white shadow-md">

@@ -1,9 +1,7 @@
-import React from 'react';
 import { Button } from '../../../../components/ui/button';
-import { Card, CardContent, CardTitle } from '../../../../components/ui/card';
+import { Card, CardContent } from '../../../../components/ui/card';
 import {
     Award,
-    MapPin,
     Calendar,
     CheckCircle,
     Share2,
@@ -50,7 +48,7 @@ export default function DashboardHome({
                     My Credentials
                 </h2>
                 <div className="space-y-4 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-300 before:to-transparent">
-                    {certificates.map((cert, i) => (
+                    {certificates.map((cert) => (
                         <div key={cert.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
                             {/* Icon */}
                             <div className={`flex items-center justify-center w-10 h-10 rounded-full border-4 border-white shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 ${
@@ -82,11 +80,11 @@ export default function DashboardHome({
                                     </div>
                                 </div>
                                 <div className="text-slate-500 text-sm mb-3">
-                                    {cert.institution} • {cert.issueDate}
+                                    {cert.institution || 'Unknown Institution'} {cert.issueDate ? `• ${cert.issueDate}` : ''}
                                 </div>
                                 <div className="flex justify-between items-center">
                                     <div className="flex -space-x-2">
-                                        {cert.skills.map((skill, skIndex) => (
+                                        {(cert.skills || []).map((skill, skIndex) => (
                                             <div key={skIndex} className="w-6 h-6 rounded-full bg-blue-100 border-2 border-white flex items-center justify-center text-[10px] text-blue-600 font-bold" title={skill}>
                                                 {skill[0]}
                                             </div>
@@ -154,14 +152,31 @@ export default function DashboardHome({
                                 </div>
                                 <h3 className="font-bold text-slate-800">{badge.name}</h3>
                                 <p className="text-xs text-slate-500 capitalize">{badge.level}</p>
-                                {badge.verified && (
-                                    <div className="mt-2 text-[10px] bg-green-50 text-green-600 px-2 py-0.5 rounded-full border border-green-100 flex items-center">
-                                        <CheckCircle className="w-3 h-3 mr-1" /> Verified
+                                <p className="text-xs text-slate-400 mt-1">{badge.category}</p>
+
+                                {/* Verification Status */}
+                                {badge.verified ? (
+                                    <div className="mt-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-50 border border-green-200">
+                                        <CheckCircle className="w-3 h-3 text-green-600 flex-shrink-0" />
+                                        <span className="text-[10px] font-semibold text-green-700 truncate max-w-[80px]" title={badge.verifiedBy}>
+                                            {badge.verifiedBy ? `By ${badge.verifiedBy}` : 'Verified'}
+                                        </span>
+                                    </div>
+                                ) : (
+                                    <div className="mt-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-50 border border-slate-200">
+                                        <Clock className="w-3 h-3 text-slate-400 flex-shrink-0" />
+                                        <span className="text-[10px] font-medium text-slate-500">Unverified</span>
                                     </div>
                                 )}
                             </Card>
                         </div>
                     ))}
+                    {skillBadges.length === 0 && (
+                        <div className="col-span-4 text-center py-8 bg-slate-50 rounded-xl border-2 border-dashed border-slate-200">
+                            <Award className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                            <p className="text-sm text-slate-500">No skill badges yet. Add skills in your profile.</p>
+                        </div>
+                    )}
                 </div>
             </section>
         </div>

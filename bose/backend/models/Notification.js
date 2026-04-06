@@ -26,6 +26,8 @@ const notificationSchema = new mongoose.Schema({
       'message_received',
       'interview_scheduled',
       'offer_received',
+      'skill_verification_request',
+      'skill_verified',
       'system',
       'other'
     ]

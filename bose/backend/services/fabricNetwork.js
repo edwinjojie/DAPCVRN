@@ -65,21 +65,60 @@ const getContract = async (contractName, identityName, role = 'client', timeoutM
   return Promise.race([connectPromise, timeoutPromise]);
 };
 
+// ── Retry helper ─────────────────────────────────────────────────────────────
+const withRetry = async (fn, retries = 1, delayMs = 1000) => {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (attempt < retries) {
+        console.warn(`⚠️ Fabric operation failed (attempt ${attempt + 1}/${retries + 1}): ${err.message}. Retrying in ${delayMs}ms...`);
+        await new Promise(r => setTimeout(r, delayMs));
+        delayMs *= 2; // exponential backoff
+      } else {
+        throw err;
+      }
+    }
+  }
+};
+
+// ── Health check ─────────────────────────────────────────────────────────────
+let _lastHealthCheck = { available: false, checkedAt: 0 };
+
+export const isNetworkAvailable = async () => {
+  // Cache for 30 seconds to avoid hammering the network
+  if (Date.now() - _lastHealthCheck.checkedAt < 30000) {
+    return _lastHealthCheck.available;
+  }
+  try {
+    const { gateway } = await getContract('BOSEChaincode', 'admin', 'admin', 3000);
+    await gateway.disconnect();
+    _lastHealthCheck = { available: true, checkedAt: Date.now() };
+    return true;
+  } catch (err) {
+    console.warn('⚠️ Fabric network health check failed:', err.message);
+    _lastHealthCheck = { available: false, checkedAt: Date.now() };
+    return false;
+  }
+};
+
 // ── Certificate Contract (BOSEChaincode) ─────────────────────────────────────
 
 export const addCertificate = async (identity, role, certId, studentId, studentName, course, institution, grade, issueDate, fileHash) => {
-  const { contract, gateway } = await getContract('BOSEChaincode', identity, role);
-  try {
-    console.log(`Submitting AddCertificate transaction for ${certId}...`);
-    await contract.submitTransaction(
-      'AddCertificate', certId, studentId, studentName,
-      course, institution, grade, issueDate, fileHash
-    );
-    console.log(`✅ AddCertificate transaction submitted`);
-    return { success: true };
-  } finally {
-    await gateway.disconnect();
-  }
+  return withRetry(async () => {
+    const { contract, gateway } = await getContract('BOSEChaincode', identity, role);
+    try {
+      console.log(`Submitting AddCertificate transaction for ${certId}...`);
+      await contract.submitTransaction(
+        'AddCertificate', certId, studentId, studentName,
+        course, institution, grade || '', issueDate, fileHash
+      );
+      console.log(`✅ AddCertificate transaction submitted`);
+      return { success: true };
+    } finally {
+      await gateway.disconnect();
+    }
+  }, 1, 2000);
 };
 
 export const queryCertificate = async (identity, certId) => {
@@ -94,14 +133,16 @@ export const queryCertificate = async (identity, certId) => {
 
 // ── Skills Contract (SkillsChaincode) ────────────────────────────────────────
 
-export const addSkill = async (identity, skillId, studentId, studentName, skillName, category, level, issuer) => {
-  const { contract, gateway } = await getContract('SkillsChaincode', identity);
-  try {
-    await contract.submitTransaction('AddSkill', skillId, studentId, studentName, skillName, category, level, issuer);
-    return { success: true };
-  } finally {
-    await gateway.disconnect();
-  }
+export const addSkill = async (identity, role, skillId, studentId, studentName, skillName, category, level, issuer) => {
+  return withRetry(async () => {
+    const { contract, gateway } = await getContract('SkillsChaincode', identity, role || 'institution');
+    try {
+      await contract.submitTransaction('AddSkill', skillId, studentId, studentName || '', skillName, category || '', level || '', issuer || '');
+      return { success: true };
+    } finally {
+      await gateway.disconnect();
+    }
+  }, 1, 2000);
 };
 
 export const querySkill = async (identity, skillId) => {
@@ -216,6 +257,25 @@ export const queryCredentialsByStudent = async (studentId) => {
   return creds;
 };
 
+/**
+ * getBlockchainStatus – checks if a credential is anchored on the Fabric ledger.
+ */
+export const getBlockchainStatus = async (credentialId) => {
+  try {
+    const Credential = await getCredentialModel();
+    const cred = await Credential.findOne({ credentialId }).select('blockchainTxId blockchainTimestamp status').lean();
+    if (!cred) return { anchored: false, error: 'Credential not found' };
+    return {
+      anchored: !!cred.blockchainTxId,
+      txId: cred.blockchainTxId,
+      timestamp: cred.blockchainTimestamp,
+      status: cred.status,
+    };
+  } catch (err) {
+    return { anchored: false, error: err.message };
+  }
+};
+
 export default {
   addCertificate,
   queryCertificate,
@@ -226,6 +286,7 @@ export default {
   revokeCredential,
   getCredential,
   queryAllCredentials,
-  queryCredentialsByStudent
+  queryCredentialsByStudent,
+  isNetworkAvailable,
+  getBlockchainStatus
 };
-

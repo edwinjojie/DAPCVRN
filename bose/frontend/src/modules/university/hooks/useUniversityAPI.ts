@@ -105,3 +105,29 @@ export function useAnalytics() {
 
   return { data, loading, error };
 }
+
+export function useSkillVerificationRequests(page: number = 1, limit: number = 10, status?: string, refreshTrigger?: number) {
+  const { user } = useAuth();
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const result = await universityService.getSkillVerificationRequests(page, limit, status, user?.role);
+        setData(result);
+      } catch (err: any) {
+        setError(err?.response?.data?.error || 'Failed to fetch skill verification requests');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [page, limit, status, user?.role, refreshTrigger]);
+
+  return { data, loading, error };
+}

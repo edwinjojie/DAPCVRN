@@ -1,7 +1,7 @@
 import Joi from 'joi';
 import { v4 as uuidv4 } from 'uuid';
 import mongoose from 'mongoose';
-import { Credential, User, VerificationRequest } from '../models/index.js';
+import { Credential, User } from '../models/index.js';
 import { generateCredentialHash } from '../utils/hashCredential.js';
 import { addCertificate } from '../services/fabricNetwork.js';
 
@@ -98,27 +98,17 @@ export const issueCredential = async (req, res) => {
       studentEmail,
       credentialHash: hash,
       dataHash:      hash,
-      status:        'pending',
+      status:        'verified',
       createdBy:     resolvedIssuerId,
+      verifiedBy:    resolvedIssuerId,
+      verifiedAt:    new Date(),
+      verificationNotes: 'Auto-verified: issued directly by university',
     });
 
     await newCred.save();
 
-    // ─── 5b. Create VerificationRequest so it appears on university dashboard ─
-    try {
-      const vr = new VerificationRequest({
-        credentialId: newCred._id,
-        requesterId:  studentObjectId,
-        verifierId:   resolvedIssuerId,
-        status:       'pending',
-        createdAt:    new Date(),
-        updatedAt:    new Date(),
-      });
-      await vr.save();
-      console.log(`✅ VerificationRequest created: ${vr._id} for credential ${newCred._id}`);
-    } catch (vrError) {
-      console.warn('⚠️ Failed to create VerificationRequest:', vrError.message);
-    }
+    // University-issued credentials are auto-verified — no VerificationRequest needed.
+    console.log(`✅ Credential ${newCred._id} auto-verified (issued by university)`);
 
     // ─── 6. Best-effort blockchain submission ─────────────────────────────
     let blockchainResult = { status: 'pending' };
