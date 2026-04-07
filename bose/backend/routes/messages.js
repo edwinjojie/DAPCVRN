@@ -3,16 +3,56 @@ import { Message } from '../models/index.js';
 
 const router = express.Router();
 
-// Get messages between current user and another user - Now using MongoDB
-router.get('/:candidateId', async (req, res) => {
+// Get unique contacts (users) that the current user has chatted with
+router.get('/contacts', async (req, res) => {
   try {
     const userId = req.user?.userId || req.user?.id;
-    const { candidateId } = req.params;
+    
+    // Find all messages involving the user
+    const messages = await Message.find({
+      $or: [{ senderId: userId }, { recipientId: userId }]
+    })
+    .populate('senderId', 'name email')
+    .populate('recipientId', 'name email')
+    .lean();
+    
+    // Extract unique contacts
+    const contactsMap = new Map();
+    
+    messages.forEach(msg => {
+      let contact = null;
+      if (msg.senderId && msg.senderId._id.toString() !== userId) {
+        contact = msg.senderId;
+      } else if (msg.recipientId && msg.recipientId._id.toString() !== userId) {
+        contact = msg.recipientId;
+      }
+      
+      if (contact && !contactsMap.has(contact._id.toString())) {
+        contactsMap.set(contact._id.toString(), {
+          id: contact._id.toString(),
+          name: contact.name,
+          email: contact.email
+        });
+      }
+    });
+
+    res.json(Array.from(contactsMap.values()));
+  } catch (error) {
+    console.error('Error fetching contacts:', error);
+    res.status(500).json({ error: 'Failed to fetch contacts' });
+  }
+});
+
+// Get messages between current user and another user
+router.get('/:otherId', async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id;
+    const { otherId } = req.params;
 
     const messages = await Message.find({
       $or: [
-        { senderId: userId, recipientId: candidateId },
-        { senderId: candidateId, recipientId: userId }
+        { senderId: userId, recipientId: otherId },
+        { senderId: otherId, recipientId: userId }
       ]
     })
     .populate('senderId', 'name email')
@@ -22,7 +62,7 @@ router.get('/:candidateId', async (req, res) => {
 
     // Transform for frontend compatibility
     const transformedMessages = messages.map(msg => ({
-      sender: msg.senderId?._id?.toString() === userId ? 'recruiter' : candidateId,
+      sender: msg.senderId?._id?.toString() === userId ? 'me' : 'them',
       text: msg.content,
       time: new Date(msg.sentAt).toLocaleTimeString(),
       ...msg
@@ -35,21 +75,31 @@ router.get('/:candidateId', async (req, res) => {
   }
 });
 
-// Send a message - Now using MongoDB
-router.post('/:candidateId', async (req, res) => {
+// Send a message
+router.post('/:otherId', async (req, res) => {
   try {
     const userId = req.user?.userId || req.user?.id;
-    const { candidateId } = req.params;
+    const { otherId } = req.params;
     const { text } = req.body;
 
     if (!text) {
       return res.status(400).json({ error: 'Message text is required' });
     }
 
+    // Must retrieve User docs to satisfy Message Schema required fields
+    const { User } = await import('../models/index.js');
+    const sender = await User.findById(userId).lean();
+    const recipient = await User.findById(otherId).lean();
+
+    const conversationId = [userId.toString(), otherId.toString()].sort().join('_');
+
     const message = await Message.create({
       messageId: `MSG-${Date.now()}`,
+      conversationId,
       senderId: userId,
-      recipientId: candidateId,
+      senderName: sender ? sender.name : 'User',
+      recipientId: otherId,
+      recipientName: recipient ? recipient.name : 'User',
       content: text,
       sentAt: new Date(),
       isRead: false
@@ -61,7 +111,7 @@ router.post('/:candidateId', async (req, res) => {
       .lean();
 
     res.json({
-      sender: 'recruiter',
+      sender: 'me',
       text: populated.content,
       time: new Date(populated.sentAt).toLocaleTimeString(),
       ...populated

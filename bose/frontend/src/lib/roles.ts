@@ -30,7 +30,7 @@ export const SIDEBAR_LINKS: Record<RoleKey, SidebarLink[]> = {
     { name: 'Profile', href: '/dashboard/candidate/profile' },
     { name: 'Credentials', href: '/dashboard/candidate#credentials' },
     { name: 'Applications', href: '/dashboard/candidate#applications' },
-    { name: 'Messages', href: '/dashboard/candidate#messages' },
+    { name: 'Messages', href: '/dashboard/candidate/messages' },
   ],
 
   student: [
@@ -39,6 +39,7 @@ export const SIDEBAR_LINKS: Record<RoleKey, SidebarLink[]> = {
     { name: 'Portfolio', href: '/dashboard/student#portfolio' },
     { name: 'Share', href: '/dashboard/student#share' },
     { name: 'Recommendations', href: '/dashboard/student#reco' },
+    { name: 'Messages', href: '/dashboard/student/messages' },
     { name: 'Analytics', href: '/dashboard/student#analytics' },
   ],
 

@@ -9,7 +9,8 @@ import {
     LogOut,
     User,
     Menu,
-    X
+    X,
+    MessageSquare
 } from 'lucide-react';
 import { Button } from '../../../../components/ui/button';
 import { Card } from '../../../../components/ui/card';
@@ -39,6 +40,7 @@ export default function StudentLayout({
         { id: 'portfolio', label: 'My Portfolio', icon: FileCheck },
         { id: 'share', label: 'Share Credentials', icon: Share2 },
         { id: 'recommendations', label: 'Recommendations', icon: Briefcase },
+        { id: 'messages', label: 'Messages', icon: MessageSquare },
         { id: 'analytics', label: 'Analytics', icon: TrendingUp },
     ];
 
