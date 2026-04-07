@@ -222,7 +222,8 @@ router.delete('/:id', async (req, res) => {
       try { cred = await Credential.findById(id); } catch (e) { /* not an ObjectId */ }
     }
     if (!cred) return res.status(404).json({ error: 'Credential not found' });
-    if (String(cred.userId) !== String(userId) && req.user?.role !== 'admin') {
+    const userRole = (req.user?.role || '').toLowerCase();
+    if (String(cred.userId) !== String(userId) && userRole !== 'admin') {
       return res.status(403).json({ error: 'Forbidden' });
     }
     await Credential.deleteOne({ _id: cred._id });
@@ -303,7 +304,8 @@ router.post('/issue', async (req, res) => {
     }
 
     // Check if user has permission to issue credentials
-    if (!['employer', 'auditor'].includes(req.user.role)) {
+    const userRole = (req.user.role || '').toLowerCase();
+    if (!['employer', 'auditor', 'recruiter'].includes(userRole)) {
       return res.status(403).json({ error: 'Insufficient permissions to issue credentials' });
     }
 
@@ -318,7 +320,7 @@ router.post('/issue', async (req, res) => {
 
     await fabricNetwork.addCertificate(
       req.user.userId || req.user.id || 'admin', // identity
-      ['employer', 'auditor'].includes(req.user.role) ? 'institution' : 'admin', // Role (assuming employers/auditors act as institutions)
+      ['employer', 'auditor', 'recruiter', 'university'].includes((req.user.role || '').toLowerCase()) ? 'institution' : 'admin', // Role (assuming employers/auditors act as institutions)
       credentialId,
       studentId,
       studentName,
@@ -346,7 +348,7 @@ router.post('/issue', async (req, res) => {
 // List verification requests (for verifiers/institutions) - MUST BE BEFORE /:credentialId
 router.get('/requests', async (req, res) => {
   try {
-    const role = req.user?.role;
+    const role = (req.user?.role || '').toLowerCase();
     const userId = req.user?.userId || req.user?.id;
 
     console.log(`Fetching verification requests for user: ${userId}, role: ${role}`);
@@ -461,7 +463,8 @@ router.post('/verify', async (req, res) => {
     }
 
     // Check if user has permission to verify credentials
-    if (!['verifier', 'auditor', 'employer'].includes(req.user.role)) {
+    const userRole = (req.user.role || '').toLowerCase();
+    if (!['verifier', 'auditor', 'employer', 'recruiter', 'university'].includes(userRole)) {
       return res.status(403).json({ error: 'Insufficient permissions to verify credentials' });
     }
 
@@ -488,7 +491,8 @@ router.post('/revoke', async (req, res) => {
     }
 
     // Check if user has permission to revoke credentials
-    if (!['auditor'].includes(req.user.role)) {
+    const userRole = (req.user.role || '').toLowerCase();
+    if (!['auditor', 'admin'].includes(userRole)) {
       return res.status(403).json({ error: 'Insufficient permissions to revoke credentials' });
     }
 
@@ -516,7 +520,8 @@ router.get('/student/:studentId', async (req, res) => {
     const { studentId } = req.params;
     
     // Students can only query their own credentials
-    if (req.user.role === 'student' && req.user.id !== studentId) {
+    const userRole = (req.user.role || '').toLowerCase();
+    if (userRole === 'student' && req.user.id !== studentId) {
       return res.status(403).json({ error: 'Can only access your own credentials' });
     }
 
@@ -538,7 +543,7 @@ router.post('/requests/:id/approve', async (req, res) => {
   try {
     const requestId = req.params.id;
     const userId = req.user?.userId || req.user?.id;
-    const role = req.user?.role;
+    const role = (req.user?.role || '').toLowerCase();
 
     const vr = await VerificationRequest.findById(requestId);
     if (!vr) return res.status(404).json({ error: 'Verification request not found' });
@@ -602,7 +607,7 @@ router.post('/requests/:id/reject', async (req, res) => {
   try {
     const requestId = req.params.id;
     const userId = req.user?.userId || req.user?.id;
-    const role = req.user?.role;
+    const role = (req.user?.role || '').toLowerCase();
 
     const vr = await VerificationRequest.findById(requestId);
     if (!vr) return res.status(404).json({ error: 'Verification request not found' });
@@ -637,7 +642,8 @@ router.post('/requests/:id/reject', async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     // Only auditors can query all credentials
-    if (req.user.role !== 'auditor') {
+    const userRole = (req.user.role || '').toLowerCase();
+    if (userRole !== 'auditor' && userRole !== 'admin') {
       return res.status(403).json({ error: 'Insufficient permissions to access all credentials' });
     }
 
@@ -677,7 +683,8 @@ router.get('/', async (req, res) => {
 router.post('/batch/issue', async (req, res) => {
   try {
     // Check permissions
-    if (!['employer', 'auditor'].includes(req.user.role)) {
+    const userRole = (req.user.role || '').toLowerCase();
+    if (!['employer', 'auditor', 'recruiter', 'admin'].includes(userRole)) {
       return res.status(403).json({ error: 'Insufficient permissions to batch issue credentials' });
     }
 

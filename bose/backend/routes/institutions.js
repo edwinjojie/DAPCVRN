@@ -22,7 +22,8 @@ const router = express.Router();
 // ── MIDDLEWARE: require institution/verifier/issuer role ──────────────────────
 const requireInstitution = (req, res, next) => {
   const allowed = ['institution', 'verifier', 'issuer', 'university', 'admin'];
-  if (!req.user || !allowed.includes(req.user.role)) {
+  const userRole = (req.user?.role || '').toLowerCase();
+  if (!req.user || !allowed.includes(userRole)) {
     return res.status(403).json({ error: 'Access restricted to institution accounts' });
   }
   next();

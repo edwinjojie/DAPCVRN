@@ -6,10 +6,8 @@ export type RoleKey =
   | 'employer'
   | 'institution'
   | 'university'
-  | 'verifier'
   | 'issuer'
-  | 'admin'
-  | 'auditor';
+  | 'admin';
 
 export const ROLE_DASHBOARD_PATH: Record<RoleKey, string> = {
   candidate: '/dashboard/candidate',
@@ -19,10 +17,8 @@ export const ROLE_DASHBOARD_PATH: Record<RoleKey, string> = {
   employer: '/dashboard/employer',
   institution: '/university',
   university: '/university',
-  verifier: '/university',
   issuer: '/university',
   admin: '/dashboard/admin',
-  auditor: '/dashboard/auditor',
 };
 
 type SidebarLink = { name: string; href: string };
@@ -76,11 +72,6 @@ export const SIDEBAR_LINKS: Record<RoleKey, SidebarLink[]> = {
     { name: 'Issued Credentials', href: '/university/issued-credentials' },
     { name: 'Analytics', href: '/university/analytics' },
   ],
-  verifier: [
-    { name: 'Dashboard', href: '/university' },
-    { name: 'Verifications', href: '/university/verification-requests' },
-    { name: 'Issued Credentials', href: '/university/issued-credentials' },
-  ],
   issuer: [
     { name: 'Dashboard', href: '/university' },
     { name: 'Issue Credential', href: '/university/issue-credential' },
@@ -102,11 +93,6 @@ export const SIDEBAR_LINKS: Record<RoleKey, SidebarLink[]> = {
     { name: 'Credentials', href: '/dashboard/admin/credentials' },
     { name: 'Blockchain', href: '/dashboard/admin/blockchain' },
     { name: 'Analytics', href: '/dashboard/admin/analytics' },
-  ],
-  auditor: [
-    { name: 'Dashboard', href: '/dashboard/auditor' },
-    { name: 'Reports', href: '/dashboard/auditor#reports' },
-    { name: 'Logs', href: '/dashboard/auditor#logs' },
   ],
 };
 

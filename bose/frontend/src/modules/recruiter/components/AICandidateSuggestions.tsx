@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '../../../components/ui/button';
 import { Card, CardContent } from '../../../components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../../components/ui/dialog';
@@ -51,10 +51,14 @@ export default function AICandidateSuggestions({ jobId, jobTitle, open, onOpenCh
 
   const handleOpen = (isOpen: boolean) => {
     onOpenChange(isOpen);
-    if (isOpen && !fetched) {
+  };
+
+  // Fetch when the modal opens externally, effectively replacing the broken onOpenChange trigger
+  useEffect(() => {
+    if (open && !fetched) {
       fetchRecommendations();
     }
-  };
+  }, [open, fetched, jobId]);
 
   return (
     <Dialog open={open} onOpenChange={handleOpen}>

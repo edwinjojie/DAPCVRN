@@ -3,9 +3,11 @@ import { Button } from '../../components/ui/button';
 import StatCard from './components/StatCard';
 import ActivityFeed from './components/ActivityFeed';
 import { useRecruiterSummary } from './hooks/useRecruiterSummary';
+import { useNavigate } from 'react-router-dom';
 
 export default function RecruiterDashboard() {
   const { summary, activity, loading, error } = useRecruiterSummary();
+  const navigate = useNavigate();
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -21,14 +23,14 @@ export default function RecruiterDashboard() {
         <div className="flex gap-3">
           <Button
             variant="gradient"
-            onClick={() => { window.location.hash = '#post-job'; }}
+            onClick={() => navigate('/dashboard/employer/jobs')}
             className="shadow-lg"
           >
             Post Job
           </Button>
           <Button
             variant="outline"
-            onClick={() => { window.location.hash = '#search'; }}
+            onClick={() => navigate('/dashboard/employer/candidates')}
           >
             Search Candidates
           </Button>

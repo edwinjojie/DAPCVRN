@@ -39,14 +39,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading]   = useState(true);
   const navigate = useNavigate();
 
-  // Restore user from localStorage on startup
+  // Restore user from sessionStorage on startup
   useEffect(() => {
-    const raw = localStorage.getItem('bose_user');
+    const raw = sessionStorage.getItem('bose_user');
     if (raw) {
       try {
         setUser(JSON.parse(raw));
       } catch {
-        localStorage.removeItem('bose_user');
+        sessionStorage.removeItem('bose_user');
       }
     }
     setLoading(false);
@@ -58,7 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const loggedInUser: User = response.data.user;
 
     setUser(loggedInUser);
-    localStorage.setItem('bose_user', JSON.stringify(loggedInUser));
+    sessionStorage.setItem('bose_user', JSON.stringify(loggedInUser));
 
     const roleKey = (loggedInUser.role || '').toLowerCase() as keyof typeof ROLE_DASHBOARD_PATH;
     navigate(ROLE_DASHBOARD_PATH[roleKey] || '/dashboard', { replace: true });
@@ -67,7 +67,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('bose_user');
+    sessionStorage.removeItem('bose_user');
     navigate('/login', { replace: true });
   };
 

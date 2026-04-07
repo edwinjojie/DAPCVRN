@@ -31,9 +31,9 @@ router.get('/dashboard', async (req, res) => {
     // totalApplicants = count(Application where recruiterId)
     const totalApplicants = await Application.countDocuments({ recruiterId });
 
-    // recentActivity = last 10 applications
+    // recentActivity = last 10 applications by updatedAt
     const recentActivity = await Application.find({ recruiterId })
-        .sort({ appliedAt: -1, createdAt: -1 })
+        .sort({ updatedAt: -1, createdAt: -1 })
         .limit(10)
         .populate('candidateId', 'name email')
         .populate('jobId', 'title');
@@ -162,6 +162,23 @@ router.put('/applications/:id/status', async (req, res) => {
         relatedJob: application.jobId,
         relatedUser: req.user.userId || req.user._id
     });
+
+    // Also send a direct message from recruiter
+    const conversationId = [req.user.userId || req.user._id, application.candidateId.toString()].sort().join('_');
+    const senderName = req.user.name || req.user.firstName || 'Recruiter';
+    const message = new Message({
+      messageId: uuidv4(),
+      conversationId: conversationId,
+      senderId: req.user.userId || req.user._id,
+      senderName: senderName,
+      recipientId: application.candidateId,
+      recipientName: application.candidateId.name || 'Candidate', // We'd ideally populate candidateId prior to this, but works for now.
+      subject: `Application Update: ${status}`,
+      content: `Hello! I wanted to let you know that your application status has been officially updated to ${status}. Feel free to reply here if you have any questions.`,
+      relatedJob: application.jobId,
+      relatedApplication: application._id
+    });
+    await message.save();
 
     res.json({
         success: true,

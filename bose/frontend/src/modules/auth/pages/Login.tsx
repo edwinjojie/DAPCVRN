@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Navigate, Link, useNavigate } from 'react-router-dom';
+import { Navigate, Link } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
@@ -10,7 +10,6 @@ import { useToast } from '../../../components/ui/toast';
 export default function Login() {
     const { user, login, loading } = useAuth();
     const { toast } = useToast();
-    const navigate = useNavigate();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
@@ -21,9 +20,7 @@ export default function Login() {
         { email: 'alice.johnson@student.edu', role: 'Student', org: 'Alice Johnson', color: 'blue', description: 'Has 2 verified credentials' },
         { email: 'hr@google.com', role: 'Recruiter', org: 'Google LLC', color: 'purple', description: 'Posted 3 active jobs' },
         { email: 'registrar@mit.edu', role: 'Institution', org: 'MIT', color: 'green', description: 'Issued 2 credentials' },
-        { email: 'admin@bose.edu', role: 'Admin', org: 'System Administrator', color: 'red', description: 'Full system access' },
-        { email: 'verifier@bose.edu', role: 'Verifier', org: 'Credential Verifier', color: 'orange', description: 'Verify credentials' },
-        { email: 'michael.auditor@gov.edu', role: 'Auditor', org: 'Government Auditor', color: 'gray', description: 'Audit system activities' }
+        { email: 'admin@bose.edu', role: 'Admin', org: 'System Administrator', color: 'red', description: 'Full system access' }
     ];
 
     if (loading) {
@@ -43,10 +40,8 @@ export default function Login() {
             return <Navigate to="/dashboard/admin" replace />;
         } else if (role === 'employer' || role === 'recruiter') {
             return <Navigate to="/dashboard/employer" replace />;
-        } else if (role === 'institution' || role === 'verifier') {
+        } else if (role === 'institution') {
             return <Navigate to="/dashboard/institution" replace />;
-        } else if (role === 'auditor') {
-            return <Navigate to="/dashboard/auditor" replace />;
         } else {
             return <Navigate to="/dashboard" replace />;
         }

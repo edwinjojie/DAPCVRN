@@ -1,11 +1,25 @@
+// Simulated AI Service using heuristic keyword matching
+
+/**
+ * Extracts and normalizes alphabetic keywords from text, ignoring stop words.
+ */
+function extractKeywords(text) {
+  if (!text) return [];
+  const words = text.toLowerCase().replace(/[^a-z\s]/g, '').split(/\s+/);
+  const stopWords = new Set([
+    'and', 'the', 'to', 'for', 'of', 'in', 'with', 'a', 'an', 'is', 'on', 'as', 
+    'are', 'be', 'at', 'this', 'that', 'we', 'you', 'will', 'our', 'from', 'it', 
+    'can', 'have', 'has', 'your', 'or', 'by'
+  ]);
+  return [...new Set(words.filter(w => w.length > 2 && !stopWords.has(w)))];
+}
+
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-
-// Valid Gemini model with fallback — gemini-3 doesn't exist yet
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-pro';
 
 /**
@@ -70,69 +84,91 @@ Please analyze and return a JSON object with the following structure (ONLY retur
 }
 
 /**
- * Match and rank candidates for a specific job based on skills.
+ * Match and rank candidates for a specific job based on skills and keywords.
  */
 export async function matchCandidatesToJob(job, candidates) {
-  let lastError;
-  for (const modelName of [GEMINI_MODEL, 'gemini-1.5-flash', 'gemini-pro']) {
-    try {
-      const model = genAI.getGenerativeModel({ model: modelName });
-
-      // Build a concise snapshot of each candidate
-      const candidateSummaries = candidates.map((c, i) => ({
-        index: i,
-        id: c._id?.toString() || c.id,
-        name: `${c.firstName || ''} ${c.lastName || ''}`.trim() || c.name || 'Unknown',
-        skills: (c.skills || []).map(s => (typeof s === 'string' ? s : s.name)).filter(Boolean),
-        experience: c.yearsOfExperience || 0,
-        headline: c.headline || ''
-      }));
-
-      if (candidateSummaries.length === 0) {
-        return [];
-      }
-
-      const prompt = `You are an expert recruiter AI assistant.
-
-Here is a job posting:
-- Title: ${job.title}
-- Required Skills: ${(job.skills || []).join(', ') || 'any'}
-- Description: ${(job.description || 'N/A').substring(0, 500)}
-- Experience Level: ${job.experienceLevel || 'any'}
-
-Here are the available candidates (as JSON):
-${JSON.stringify(candidateSummaries, null, 2)}
-
-Please rank the candidates by how well they match the job. Return a JSON array (ONLY the JSON, no markdown fences) with this structure:
-[
-  {
-    "candidateId": "the candidate id",
-    "candidateName": "candidate name",
-    "matchScore": <number 0-100>,
-    "matchingSkills": ["skills that match the job"],
-    "missingSkills": ["skills the candidate lacks for this job"],
-    "summary": "brief explanation of why this candidate is a good/poor fit"
-  }
-]
-
-Sort by matchScore descending. Include ALL candidates even if score is 0.`;
-
-      const result = await model.generateContent(prompt);
-      const text = result.response.text();
-
-      // Strip markdown fences
-      const cleaned = text.replace(/```json?\s*/gi, '').replace(/```/g, '').trim();
-      const jsonMatch = cleaned.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        console.log(`✅ AI candidate matching succeeded with model: ${modelName}`);
-        return JSON.parse(jsonMatch[0]);
-      }
-
+  try {
+    if (!candidates || candidates.length === 0) {
       return [];
-    } catch (err) {
-      console.warn(`⚠️ AI model ${modelName} failed for candidate matching: ${err.message}`);
-      lastError = err;
     }
+
+    const jobRequiredSkillsLower = (job.skills || []).map(s => String(s).toLowerCase().trim());
+    
+    // Extract supplementary keywords from job title and description
+    const jobKeywords = new Set([
+      ...jobRequiredSkillsLower,
+      ...extractKeywords(job.title),
+      ...extractKeywords(job.description)
+    ]);
+    
+    const results = candidates.map(c => {
+      const candidateSkills = (c.skills || []).map(s => (typeof s === 'string' ? s : (s.name || ''))).filter(Boolean);
+      const candidateSkillsLower = candidateSkills.map(s => s.toLowerCase().trim());
+      
+      const candidateKeywords = new Set([
+        ...candidateSkillsLower,
+        ...extractKeywords(c.headline)
+      ]);
+      
+      let matchCount = 0;
+      const matchingSkills = [];
+      const missingSkills = [];
+      let matchScore = 0;
+      
+      // If the job explicitly defines required skills, weight them heavily
+      if (jobRequiredSkillsLower.length > 0) {
+        jobRequiredSkillsLower.forEach(reqSkill => {
+          if (candidateSkillsLower.some(cSkill => cSkill.includes(reqSkill) || reqSkill.includes(cSkill))) {
+            matchingSkills.push(reqSkill);
+            matchCount++;
+          } else {
+            missingSkills.push(reqSkill);
+          }
+        });
+        
+        // Base score up to 80 points from strict requirements
+        const strictScore = Math.round((matchCount / jobRequiredSkillsLower.length) * 80);
+        
+        // Supplementary score up to 20 points from description/headline keyword overlaps
+        let keywordOverlap = 0;
+        candidateKeywords.forEach(kw => {
+          if (jobKeywords.has(kw) && !jobRequiredSkillsLower.includes(kw)) keywordOverlap++;
+        });
+        const keywordBoost = Math.min(20, keywordOverlap * 2);
+        
+        matchScore = Math.min(100, strictScore + keywordBoost);
+      } else {
+        // Fallback: If no explicit job skills, score purely on keyword overlap
+        let keywordOverlap = 0;
+        jobKeywords.forEach(kw => {
+          if (candidateKeywords.has(kw)) {
+            keywordOverlap++;
+            matchingSkills.push(kw);
+          }
+        });
+        matchScore = jobKeywords.size > 0 ? Math.min(100, Math.round((keywordOverlap / jobKeywords.size) * 100)) : 50;
+      }
+      
+      // Generate summary
+      let summary = '';
+      if (matchScore >= 80) summary = `Excellent match! Strong overlap with required profile.`;
+      else if (matchScore >= 50) summary = `Good potential match, but missing some key requirements.`;
+      else summary = `Weak match based on current profile keywords.`;
+      
+      return {
+        candidateId: c._id?.toString() || c.id,
+        candidateName: `${c.firstName || ''} ${c.lastName || ''}`.trim() || c.name || 'Unknown Candidate',
+        matchScore,
+        matchingSkills: matchingSkills.map(s => s.charAt(0).toUpperCase() + s.slice(1)),
+        missingSkills: missingSkills.map(s => s.charAt(0).toUpperCase() + s.slice(1)),
+        summary
+      };
+    });
+    
+    // Sort descending by score
+    return results.sort((a, b) => b.matchScore - a.matchScore);
+  } catch (error) {
+    console.error('Candidate match heuristic error:', error);
+    throw new Error('Failed to match candidates: ' + error.message);
   }
-  throw new Error('Failed to match candidates: ' + lastError?.message);
 }

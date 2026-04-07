@@ -26,7 +26,7 @@ export function authenticateToken(req, res, next) {
  * Must be used AFTER authenticateToken.
  */
 export function requireRecruiter(req, res, next) {
-  if (!req.user || req.user.role !== 'recruiter') {
+  if (!req.user || (req.user.role || '').toLowerCase() !== 'recruiter') {
     return res.status(403).json({ error: 'Access denied: Recruiters only' });
   }
   next();

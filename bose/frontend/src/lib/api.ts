@@ -10,7 +10,7 @@ const api = axios.create({
 // Attach user-identity headers from localStorage on every request.
 // These replace the former JWT Authorization header.
 api.interceptors.request.use((config) => {
-  const raw = localStorage.getItem('bose_user');
+  const raw = sessionStorage.getItem('bose_user');
   if (raw) {
     try {
       const user = JSON.parse(raw);

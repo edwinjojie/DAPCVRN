@@ -7,7 +7,8 @@ const router = express.Router();
 router.get('/stats', async (req, res) => {
   try {
     // Only auditors and employers can access analytics
-    if (!['auditor', 'employer'].includes(req.user.role)) {
+    const userRole = (req.user?.role || '').toLowerCase();
+    if (!['auditor', 'employer', 'recruiter', 'admin'].includes(userRole)) {
       return res.status(403).json({ error: 'Insufficient permissions to access analytics' });
     }
 
@@ -63,7 +64,8 @@ router.get('/stats', async (req, res) => {
 // Get issuance trends
 router.get('/trends', async (req, res) => {
   try {
-    if (!['auditor', 'employer'].includes(req.user.role)) {
+    const userRole = (req.user?.role || '').toLowerCase();
+    if (!['auditor', 'employer', 'recruiter', 'admin'].includes(userRole)) {
       return res.status(403).json({ error: 'Insufficient permissions' });
     }
 
@@ -108,7 +110,8 @@ router.get('/trends', async (req, res) => {
 // Get organization performance
 router.get('/organizations', async (req, res) => {
   try {
-    if (!['auditor'].includes(req.user.role)) {
+    const userRole = (req.user?.role || '').toLowerCase();
+    if (!['auditor', 'admin'].includes(userRole)) {
       return res.status(403).json({ error: 'Insufficient permissions' });
     }
 
