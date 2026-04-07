@@ -23,6 +23,7 @@ import Unauthorized from './modules/common/pages/Unauthorized';
 import CandidateDashboard from './modules/candidate/pages/CandidateDashboard';
 import CandidateProfile from './modules/candidate/pages/Profile';
 import PublicProfile from './modules/candidate/pages/PublicProfile';
+import CandidateMessages from './modules/candidate/pages/Messages';
 
 
 function App() {
@@ -43,10 +44,24 @@ function App() {
                     <StudentDashboard />
                   </ProtectedRoute>
                 } />
+                <Route path="/dashboard/student/messages" element={
+                  <ProtectedRoute roles={["student", "candidate", "employee"]}>
+                    <Layout>
+                      <CandidateMessages />
+                    </Layout>
+                  </ProtectedRoute>
+                } />
                 <Route path="/dashboard/candidate" element={
                   <ProtectedRoute roles={["candidate"]}>
                     <Layout>
                       <CandidateDashboard />
+                    </Layout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/dashboard/candidate/messages" element={
+                  <ProtectedRoute roles={["candidate"]}>
+                    <Layout>
+                      <CandidateMessages />
                     </Layout>
                   </ProtectedRoute>
                 } />

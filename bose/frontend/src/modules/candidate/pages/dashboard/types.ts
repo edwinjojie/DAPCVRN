@@ -1,6 +1,6 @@
 
 
-export type DashboardSection = 'dashboard' | 'upload' | 'portfolio' | 'share' | 'recommendations' | 'analytics';
+export type DashboardSection = 'dashboard' | 'upload' | 'portfolio' | 'share' | 'recommendations' | 'analytics' | 'messages';
 
 export interface CertificateItem {
     id: string;

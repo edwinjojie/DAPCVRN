@@ -19,6 +19,7 @@ import Analytics from './dashboard/Analytics';
 import CertificateDetailsModal from './dashboard/CertificateDetailsModal';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../../components/ui/dialog';
 import QRCodeModal from '../components/QRCodeModal';
+import CandidateMessages from './Messages';
 
 import { Share2, QrCode } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
@@ -255,6 +256,8 @@ export default function StudentDashboard() {
         return <ShareCredentials userName={studentProfile.name} />;
       case 'recommendations':
         return <Recommendations />;
+      case 'messages':
+        return <CandidateMessages />;
       case 'analytics':
         return <Analytics />;
       default:
