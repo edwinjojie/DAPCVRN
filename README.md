@@ -8,7 +8,7 @@
 - Offer role-based experiences for `student`, `university`, `recruiter`, and `admin` to streamline workflows.
 
 ## Why We’re Building It
-- Credential fraud and manual checks slow admissions and hiring, creating risk for institutions and employers.
+- Credential fraud and manual checks slow admissions and hiring, creating risk for institutions and employers .
 - Verification today is fragmented across emails, phone calls, and PDFs, with poor auditability and high operational cost.
 - Students lack a single, privacy-preserving place to manage and share credentials across opportunities.
 - Universities need modern, scalable issuance and verification with strong security guarantees and clear compliance trails.
